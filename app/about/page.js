@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, DollarSign, Clock, Users, Heart, ArrowRight } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, DollarSign, Clock, Users, ArrowRight } from 'lucide-react'
 
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -61,185 +61,175 @@ export default function AboutPage() {
         <section className="gradient-bg text-white py-12 md:py-16">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Who We Are</h1>
-            <p className="text-lg md:text-xl text-blue-100">A platform born from real frustration with the traditional home selling process</p>
+            <p className="text-lg md:text-xl text-blue-100">Connecting homeowners who want to trade places</p>
           </div>
         </section>
 
-        {/* My Story */}
+        {/* Our Story */}
         <section className="py-12 md:py-16 bg-white">
           <div className="max-w-3xl mx-auto px-4">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-blue-600" />
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold">My Story</h2>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">Our Story</h2>
             
-            <div className="prose prose-lg text-gray-700 space-y-4">
+            <div className="text-gray-700 space-y-4 text-lg leading-relaxed">
               <p>
-                Hi, I'm Hussein, the founder of SwapStates. This platform exists because of my own painful experience trying to relocate from <strong>Indiana to Arizona</strong>.
+                Hi, I'm Mr. H. I started SwapStates while going through the process of relocating from Indiana to Arizona.
               </p>
               
               <p>
-                Like many homeowners, I dreamed of a change—sunshine, new opportunities, a fresh start in Arizona. What I didn't dream of was the nightmare that followed when I tried to sell my home.
-              </p>
-
-              <div className="bg-orange-50 border-l-4 border-orange-400 p-4 my-6">
-                <p className="font-semibold text-orange-800">It's been over a year now.</p>
-                <p className="text-orange-700">A full year of waiting, hoping, and watching my plans stay frozen while the traditional real estate system moved at its own glacial pace. And guess what? I'm still here in Indiana, still wanting to move.</p>
-              </div>
-
-              <p>
-                The traditional process is broken. Here's what I experienced:
-              </p>
-
-              <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Months of waiting</strong> for the right buyer to come along</li>
-                <li><strong>Endless showings</strong> that disrupted my daily life</li>
-                <li><strong>Agent commissions</strong> that would eat up 5-6% of my home's value—tens of thousands of dollars</li>
-                <li><strong>The timing problem</strong>—how do you buy a new home when your current one hasn't sold?</li>
-                <li><strong>Bridge loans and double mortgages</strong>—expensive band-aids for a broken system</li>
-              </ul>
-
-              <p>
-                One night, frustrated after another month with no serious offers, I thought: <em>"There has to be someone in Arizona who wants to move to Indiana. Why can't we just... swap?"</em>
+                During that experience, I noticed something interesting: while I was looking to move to Arizona, there were people in Arizona looking to move to places like Indiana. We were essentially looking in opposite directions.
               </p>
 
               <p>
-                That simple question became <strong>SwapStates</strong>.
+                That got me thinking—what if homeowners could connect directly with each other? Instead of both parties going through the traditional listing process separately, why not create a space where people could find others heading in the opposite direction?
+              </p>
+
+              <p>
+                That simple idea became SwapStates: a platform where homeowners can list their homes, share where they'd like to move, and connect with others who might be a good match.
+              </p>
+              
+              <p>
+                It's a straightforward concept—bringing people together who might benefit from knowing each other exist.
               </p>
             </div>
           </div>
         </section>
 
-        {/* The Problem We're Solving */}
+        {/* How It Works Diagram */}
         <section className="py-12 md:py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">The Problem With Traditional Home Selling</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">How SwapStates Works</h2>
+            
+            {/* Diagram */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10">
+              
+              {/* Traditional Way */}
+              <div className="mb-10">
+                <h3 className="text-lg font-semibold text-gray-500 mb-4 text-center">Traditional Way</h3>
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+                  <div className="bg-orange-100 border-2 border-orange-300 rounded-xl p-4 text-center w-full md:w-48">
+                    <Home className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                    <p className="font-semibold">Your Home</p>
+                    <p className="text-sm text-gray-600">Indiana</p>
+                  </div>
+                  
+                  <div className="flex flex-col items-center text-gray-400">
+                    <span className="text-2xl">→</span>
+                    <span className="text-xs">List with agent</span>
+                  </div>
+                  
+                  <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-center w-full md:w-48">
+                    <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                    <p className="font-semibold">Wait for Buyer</p>
+                    <p className="text-sm text-gray-600">3-12 months</p>
+                  </div>
+                  
+                  <div className="flex flex-col items-center text-gray-400">
+                    <span className="text-2xl">→</span>
+                    <span className="text-xs">Pay commission</span>
+                  </div>
+                  
+                  <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-center w-full md:w-48">
+                    <DollarSign className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                    <p className="font-semibold">Then Buy</p>
+                    <p className="text-sm text-gray-600">Start over in AZ</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-8">
+                <div className="flex-1 h-px bg-gray-200"></div>
+                <span className="text-gray-400 font-medium">vs</span>
+                <div className="flex-1 h-px bg-gray-200"></div>
+              </div>
+
+              {/* SwapStates Way */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-600 mb-4 text-center">The SwapStates Way</h3>
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+                  <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 text-center w-full md:w-52">
+                    <Home className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                    <p className="font-semibold">You in Indiana</p>
+                    <p className="text-sm text-gray-600">Want to move to Arizona</p>
+                  </div>
+                  
+                  <div className="flex flex-col items-center">
+                    <div className="bg-green-500 text-white rounded-full p-3">
+                      <ArrowLeftRight className="w-8 h-8" />
+                    </div>
+                    <span className="text-sm font-semibold text-green-600 mt-2">Direct Match</span>
+                  </div>
+                  
+                  <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 text-center w-full md:w-52">
+                    <Home className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                    <p className="font-semibold">Someone in Arizona</p>
+                    <p className="text-sm text-gray-600">Wants to move to Indiana</p>
+                  </div>
+                </div>
+                
+                <div className="text-center mt-6">
+                  <p className="text-gray-600">Connect directly. Explore the possibility. Move forward together.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* What We Offer */}
+        <section className="py-12 md:py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">What SwapStates Offers</h2>
             
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl shadow-sm">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <Clock className="w-6 h-6 text-red-600" />
+              <div className="text-center p-6">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-7 h-7 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Painfully Slow</h3>
-                <p className="text-gray-600">Average home sits on market for 3-6 months. Meanwhile, your life is on hold and your dream home might sell to someone else.</p>
+                <h3 className="font-semibold text-lg mb-2">Direct Connections</h3>
+                <p className="text-gray-600">A space for homeowners to find and connect with others who are moving in the opposite direction.</p>
               </div>
               
-              <div className="bg-white p-6 rounded-2xl shadow-sm">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <DollarSign className="w-6 h-6 text-red-600" />
+              <div className="text-center p-6">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Home className="w-7 h-7 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Expensive Commissions</h3>
-                <p className="text-gray-600">Real estate agents take 5-6% of your sale. On a $400,000 home, that's $24,000 gone—before you've even moved.</p>
+                <h3 className="font-semibold text-lg mb-2">Simple Listings</h3>
+                <p className="text-gray-600">Share your home details and where you'd like to move. Browse others doing the same.</p>
               </div>
               
-              <div className="bg-white p-6 rounded-2xl shadow-sm">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <Home className="w-6 h-6 text-red-600" />
+              <div className="text-center p-6">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-7 h-7 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Timing Nightmare</h3>
-                <p className="text-gray-600">Sell first and be homeless? Buy first and carry two mortgages? There's no good option in the traditional system.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Our Solution */}
-        <section className="py-12 md:py-16 bg-white">
-          <div className="max-w-3xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Our Solution: Direct Home Swaps</h2>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 md:p-8 mb-8">
-              <p className="text-lg text-center text-blue-900">
-                SwapStates opens a <strong>direct channel between homeowners</strong> across states—or even within the same state—who want to trade places.
-              </p>
-            </div>
-
-            <div className="space-y-4 text-gray-700">
-              <p>
-                Think about it: Right now, someone in Arizona is sitting in their home, dreaming of moving to Indiana. They're dealing with the same frustrations you are. The same slow market. The same agent fees.
-              </p>
-              
-              <p>
-                <strong>What if you could find each other?</strong>
-              </p>
-              
-              <p>
-                That's exactly what SwapStates does. We connect homeowners who want to swap locations, cutting out the middlemen and creating a direct path to your new life.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mt-8">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold">No Waiting for Buyers</h4>
-                  <p className="text-gray-600 text-sm">Your swap partner IS your buyer, and you're theirs.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Save on Commissions</h4>
-                  <p className="text-gray-600 text-sm">Direct connection means potential to save thousands.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Perfect Timing</h4>
-                  <p className="text-gray-600 text-sm">You move out when they move out. No gap, no overlap.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Motivated Partners</h4>
-                  <p className="text-gray-600 text-sm">Both parties want the deal to work. Aligned incentives.</p>
-                </div>
+                <h3 className="font-semibold text-lg mb-2">Your Timeline</h3>
+                <p className="text-gray-600">No pressure. Explore at your own pace and reach out when you find someone interesting.</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Our Mission */}
+        {/* A Note */}
         <section className="py-12 md:py-16 bg-gray-50">
-          <div className="max-w-3xl mx-auto px-4 text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-8 h-8 text-blue-600" />
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
+              <h3 className="font-semibold text-lg mb-3">A Quick Note</h3>
+              <p className="text-gray-700 leading-relaxed">
+                SwapStates is a platform for making connections. When you find a potential match, you'll still want to work with appropriate professionals—real estate attorneys, title companies, inspectors—to handle the details of any transaction. We're here to help you find each other. The rest is up to you.
+              </p>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Our Mission</h2>
-            <p className="text-lg text-gray-700 mb-6">
-              To empower homeowners to take control of their relocation journey. No more waiting on a broken system. No more paying massive fees just to move to a new place. 
-            </p>
-            <p className="text-lg text-gray-700">
-              Whether you're moving across the country or across your state, SwapStates gives you a direct line to someone who might be your perfect swap partner.
-            </p>
           </div>
         </section>
 
         {/* CTA */}
         <section className="py-12 md:py-16 gradient-bg text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Find Your Swap?</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Interested in Seeing Who's Out There?</h2>
             <p className="text-lg text-blue-100 mb-6">
-              Join me and other homeowners who are tired of waiting. List your home for free and let's find your match.
+              Browse current listings or add your own. It's free, and you might find exactly who you're looking for.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/list" className="bg-white text-blue-800 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 inline-flex items-center justify-center gap-2">
-                List Your Home Free <ArrowRight className="w-5 h-5" />
+                List Your Home <ArrowRight className="w-5 h-5" />
               </Link>
               <Link href="/browse" className="border-2 border-white px-8 py-4 rounded-xl font-bold hover:bg-white/10">
                 Browse Listings
