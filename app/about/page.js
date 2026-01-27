@@ -1,8 +1,8 @@
- 'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, DollarSign, Clock, Users, ArrowRight, UserCheck } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, Users, ArrowRight, UserCheck, Clock, Building, FileText, ChevronDown } from 'lucide-react'
 
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -72,11 +72,11 @@ export default function AboutPage() {
             
             <div className="text-gray-700 space-y-4 text-lg leading-relaxed">
               <p>
-                Hi, I'm Mr. H. I started SwapStates while going through the process of relocating from Indiana to Arizona.
+                Hi, I'm Mr. H. I started SwapStates while going through the process of relocating to another state.
               </p>
               
               <p>
-                During that experience, I noticed something interesting. While I was looking to move to Arizona, there were people in Arizona looking to move to places like Indiana. We were essentially looking in opposite directions.
+                During that experience, I noticed something interesting. While I was looking to move to a new state, there were people in that state looking to move to where I lived. We were essentially looking in opposite directions.
               </p>
 
               <p>
@@ -97,80 +97,102 @@ export default function AboutPage() {
         {/* How It Works Diagram */}
         <section className="py-12 md:py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">How SwapStates Works</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">How SwapStates Works</h2>
             
-            {/* Diagram */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 md:p-10">
+            {/* Professional Diagram */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12">
               
-              {/* Traditional Way */}
-              <div className="mb-10">
-                <h3 className="text-lg font-semibold text-gray-500 mb-4 text-center">Traditional Way</h3>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                  <div className="bg-orange-100 border-2 border-orange-300 rounded-xl p-4 text-center w-full md:w-48">
-                    <Home className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                    <p className="font-semibold">Your Home</p>
-                    <p className="text-sm text-gray-600">Indiana</p>
+              {/* Step 1: Two Homeowners */}
+              <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+                <div className="text-center">
+                  <div className="w-20 h-20 border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-3 bg-gray-50">
+                    <Home className="w-9 h-9 text-gray-600" />
                   </div>
-                  
-                  <div className="flex flex-col items-center text-gray-400">
-                    <span className="text-2xl">→</span>
-                    <span className="text-xs">List with agent</span>
-                  </div>
-                  
-                  <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-center w-full md:w-48">
-                    <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                    <p className="font-semibold">Wait for Buyer</p>
-                    <p className="text-sm text-gray-600">3 to 12 months</p>
-                  </div>
-                  
-                  <div className="flex flex-col items-center text-gray-400">
-                    <span className="text-2xl">→</span>
-                    <span className="text-xs">Pay commission</span>
-                  </div>
-                  
-                  <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-center w-full md:w-48">
-                    <DollarSign className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                    <p className="font-semibold">Then Buy</p>
-                    <p className="text-sm text-gray-600">Start over in AZ</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-4 my-8">
-                <div className="flex-1 h-px bg-gray-200"></div>
-                <span className="text-gray-400 font-medium">vs</span>
-                <div className="flex-1 h-px bg-gray-200"></div>
-              </div>
-
-              {/* SwapStates Way */}
-              <div>
-                <h3 className="text-lg font-semibold text-blue-600 mb-4 text-center">The SwapStates Way</h3>
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                  <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4 text-center w-full md:w-52">
-                    <Home className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                    <p className="font-semibold">You in Indiana</p>
-                    <p className="text-sm text-gray-600">Want to move to Arizona</p>
-                  </div>
-                  
-                  <div className="flex flex-col items-center">
-                    <div className="bg-green-500 text-white rounded-full p-3">
-                      <ArrowLeftRight className="w-8 h-8" />
-                    </div>
-                    <span className="text-sm font-semibold text-green-600 mt-2">Direct Match</span>
-                  </div>
-                  
-                  <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 text-center w-full md:w-52">
-                    <Home className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                    <p className="font-semibold">Someone in Arizona</p>
-                    <p className="text-sm text-gray-600">Wants to move to Indiana</p>
-                  </div>
+                  <p className="font-semibold text-gray-800">Homeowner A</p>
+                  <p className="text-sm text-gray-500 mt-1">Lives in State X</p>
+                  <p className="text-sm text-gray-500">Wants to move to State Y</p>
                 </div>
                 
-                <div className="text-center mt-6">
-                  <p className="text-gray-600">Connect directly. Explore the possibility. Move forward together.</p>
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center">
+                    <ArrowLeftRight className="w-7 h-7 text-white" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 mt-2">Match</p>
+                </div>
+                
+                <div className="text-center">
+                  <div className="w-20 h-20 border-2 border-gray-300 rounded-full flex items-center justify-center mx-auto mb-3 bg-gray-50">
+                    <Home className="w-9 h-9 text-gray-600" />
+                  </div>
+                  <p className="font-semibold text-gray-800">Homeowner B</p>
+                  <p className="text-sm text-gray-500 mt-1">Lives in State Y</p>
+                  <p className="text-sm text-gray-500">Wants to move to State X</p>
                 </div>
               </div>
+              
+              {/* Arrow Down */}
+              <div className="flex justify-center my-8">
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-12 bg-gray-300"></div>
+                  <ChevronDown className="w-6 h-6 text-gray-400 -mt-1" />
+                </div>
+              </div>
+              
+              {/* Step 2: Connection */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-3 bg-gray-100 px-6 py-3 rounded-full">
+                  <Users className="w-5 h-5 text-gray-600" />
+                  <span className="font-medium text-gray-800">Direct Connection Made</span>
+                </div>
+              </div>
+              
+              {/* Arrow Down */}
+              <div className="flex justify-center mb-8">
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-12 bg-gray-300"></div>
+                  <ChevronDown className="w-6 h-6 text-gray-400 -mt-1" />
+                </div>
+              </div>
+              
+              {/* Step 3: Two Options */}
+              <div className="flex flex-col md:flex-row items-stretch justify-center gap-6">
+                <div className="flex-1 border border-gray-200 rounded-xl p-5 text-center max-w-xs mx-auto md:mx-0">
+                  <div className="w-12 h-12 border border-gray-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <UserCheck className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <p className="font-semibold text-gray-800 mb-1">Option A</p>
+                  <p className="text-sm text-gray-600">Involve an agent to complete the transaction</p>
+                </div>
+                
+                <div className="flex items-center justify-center">
+                  <span className="text-gray-400 font-medium">or</span>
+                </div>
+                
+                <div className="flex-1 border border-gray-200 rounded-xl p-5 text-center max-w-xs mx-auto md:mx-0">
+                  <div className="w-12 h-12 border border-gray-300 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileText className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <p className="font-semibold text-gray-800 mb-1">Option B</p>
+                  <p className="text-sm text-gray-600">Handle it directly with legal professionals</p>
+                </div>
+              </div>
+              
+              {/* Arrow Down */}
+              <div className="flex justify-center my-8">
+                <div className="flex flex-col items-center">
+                  <div className="w-px h-12 bg-gray-300"></div>
+                  <ChevronDown className="w-6 h-6 text-gray-400 -mt-1" />
+                </div>
+              </div>
+              
+              {/* Final Step */}
+              <div className="text-center">
+                <div className="inline-flex items-center gap-3 bg-gray-800 text-white px-6 py-3 rounded-full">
+                  <Home className="w-5 h-5" />
+                  <span className="font-medium">Both Homeowners Relocate</span>
+                </div>
+              </div>
+              
             </div>
           </div>
         </section>
@@ -185,9 +207,9 @@ export default function AboutPage() {
             </p>
             
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <UserCheck className="w-6 h-6 text-blue-600" />
+              <div className="border border-gray-200 rounded-xl p-6">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <UserCheck className="w-6 h-6 text-gray-700" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Involve a Real Estate Agent</h3>
                 <p className="text-gray-600">
@@ -195,9 +217,9 @@ export default function AboutPage() {
                 </p>
               </div>
               
-              <div className="bg-gray-50 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-green-600" />
+              <div className="border border-gray-200 rounded-xl p-6">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-gray-700" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Complete It Yourselves</h3>
                 <p className="text-gray-600">
@@ -218,25 +240,25 @@ export default function AboutPage() {
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">What SwapStates Offers</h2>
             
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-6 bg-white rounded-2xl">
-                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-7 h-7 text-blue-600" />
+              <div className="text-center p-6 bg-white rounded-xl border border-gray-200">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-7 h-7 text-gray-700" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Direct Connections</h3>
                 <p className="text-gray-600">A space for homeowners to find and connect with others who are moving in the opposite direction.</p>
               </div>
               
-              <div className="text-center p-6 bg-white rounded-2xl">
-                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Home className="w-7 h-7 text-blue-600" />
+              <div className="text-center p-6 bg-white rounded-xl border border-gray-200">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Home className="w-7 h-7 text-gray-700" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Simple Listings</h3>
                 <p className="text-gray-600">Share your home details and where you would like to move. Browse others doing the same.</p>
               </div>
               
-              <div className="text-center p-6 bg-white rounded-2xl">
-                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-7 h-7 text-blue-600" />
+              <div className="text-center p-6 bg-white rounded-xl border border-gray-200">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-7 h-7 text-gray-700" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Your Timeline</h3>
                 <p className="text-gray-600">No pressure. Explore at your own pace and reach out when you find someone interesting.</p>
