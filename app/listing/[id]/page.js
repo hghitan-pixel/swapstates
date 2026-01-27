@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Bed, Bath, Square, MapPin, Calendar, DollarSign, ArrowLeft, Home, Mail } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Bed, Bath, Square, MapPin, Calendar, ArrowLeft, Home, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 function Navigation() {
@@ -186,7 +186,7 @@ export default function ListingPage() {
                 )}
               </div>
 
-            <div className="border-t pt-6 flex flex-col sm:flex-row gap-4">
+              <div className="border-t pt-6 flex flex-col sm:flex-row gap-4">
                 <Link href={`/edit/${params.id}`} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 flex items-center justify-center gap-2">
                   Edit Listing
                 </Link>
@@ -201,7 +201,6 @@ export default function ListingPage() {
                   <p className="text-gray-700">To contact this homeowner, please <Link href="/list" className="text-blue-600 font-semibold hover:underline">list your home first</Link>.</p>
                 </div>
               )}
-              </div>
             </div>
           </div>
         </div>
