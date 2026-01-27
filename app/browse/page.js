@@ -7,60 +7,6 @@ import { createClient } from '@/lib/supabase'
 
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming']
 
-// State coordinates for map centering
-const STATE_COORDS = {
-  'Alabama': [32.806671, -86.791130],
-  'Alaska': [61.370716, -152.404419],
-  'Arizona': [33.729759, -111.431221],
-  'Arkansas': [34.969704, -92.373123],
-  'California': [36.116203, -119.681564],
-  'Colorado': [39.059811, -105.311104],
-  'Connecticut': [41.597782, -72.755371],
-  'Delaware': [39.318523, -75.507141],
-  'Florida': [27.766279, -81.686783],
-  'Georgia': [33.040619, -83.643074],
-  'Hawaii': [21.094318, -157.498337],
-  'Idaho': [44.240459, -114.478828],
-  'Illinois': [40.349457, -88.986137],
-  'Indiana': [39.849426, -86.258278],
-  'Iowa': [42.011539, -93.210526],
-  'Kansas': [38.526600, -96.726486],
-  'Kentucky': [37.668140, -84.670067],
-  'Louisiana': [31.169546, -91.867805],
-  'Maine': [44.693947, -69.381927],
-  'Maryland': [39.063946, -76.802101],
-  'Massachusetts': [42.230171, -71.530106],
-  'Michigan': [43.326618, -84.536095],
-  'Minnesota': [45.694454, -93.900192],
-  'Mississippi': [32.741646, -89.678696],
-  'Missouri': [38.456085, -92.288368],
-  'Montana': [46.921925, -110.454353],
-  'Nebraska': [41.125370, -98.268082],
-  'Nevada': [38.313515, -117.055374],
-  'New Hampshire': [43.452492, -71.563896],
-  'New Jersey': [40.298904, -74.521011],
-  'New Mexico': [34.840515, -106.248482],
-  'New York': [42.165726, -74.948051],
-  'North Carolina': [35.630066, -79.806419],
-  'North Dakota': [47.528912, -99.784012],
-  'Ohio': [40.388783, -82.764915],
-  'Oklahoma': [35.565342, -96.928917],
-  'Oregon': [44.572021, -122.070938],
-  'Pennsylvania': [40.590752, -77.209755],
-  'Rhode Island': [41.680893, -71.511780],
-  'South Carolina': [33.856892, -80.945007],
-  'South Dakota': [44.299782, -99.438828],
-  'Tennessee': [35.747845, -86.692345],
-  'Texas': [31.054487, -97.563461],
-  'Utah': [40.150032, -111.862434],
-  'Vermont': [44.045876, -72.710686],
-  'Virginia': [37.769337, -78.169968],
-  'Washington': [47.400902, -121.490494],
-  'West Virginia': [38.491226, -80.954453],
-  'Wisconsin': [44.268543, -89.616508],
-  'Wyoming': [42.755966, -107.302490]
-}
-
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
@@ -94,24 +40,13 @@ function Navigation() {
   )
 }
 
-function Footer() {
-  return (
-    <footer className="bg-gray-800 text-gray-300 py-8">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <div className="flex items-center justify-center space-x-2 text-white mb-4">
-          <ArrowLeftRight className="w-6 h-6" />
-          <span className="text-xl font-bold">SwapStates</span>
-        </div>
-        <p className="text-sm">© {new Date().getFullYear()} SwapStates. All rights reserved.</p>
-      </div>
-    </footer>
-  )
-}
-
-function ListingCard({ listing }) {
+function ListingCard({ listing, isSelected, onClick }) {
   const image = listing.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=500&fit=crop'
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+    <div 
+      className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border-2 cursor-pointer ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
+      onClick={onClick}
+    >
       <div className="relative">
         <img src={image} alt="Property" className="w-full h-36 object-cover" />
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
@@ -135,13 +70,33 @@ function ListingCard({ listing }) {
   )
 }
 
-function MapView({ listings, onMarkerClick }) {
-  const [mapLoaded, setMapLoaded] = useState(false)
+// Geocode address using Nominatim (free)
+async function geocodeAddress(address, city, state, zip) {
+  const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}, USA`)
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
+      headers: { 'User-Agent': 'SwapStates/1.0' }
+    })
+    const data = await response.json()
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error)
+  }
+  return null
+}
 
+function MapView({ listings, selectedListing, onMarkerClick }) {
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapInstance, setMapInstance] = useState(null)
+  const [markers, setMarkers] = useState([])
+  const [geocodedListings, setGeocodedListings] = useState([])
+
+  // Load Leaflet
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    // Load Leaflet CSS
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link')
       link.id = 'leaflet-css'
@@ -150,7 +105,6 @@ function MapView({ listings, onMarkerClick }) {
       document.head.appendChild(link)
     }
 
-    // Load Leaflet JS
     if (!window.L) {
       const script = document.createElement('script')
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
@@ -161,75 +115,177 @@ function MapView({ listings, onMarkerClick }) {
     }
   }, [])
 
+  // Geocode listings that do not have coordinates
+  useEffect(() => {
+    async function geocodeListings() {
+      const supabase = createClient()
+      const updated = []
+
+      for (const listing of listings) {
+        if (listing.latitude && listing.longitude) {
+          updated.push({ ...listing, lat: listing.latitude, lng: listing.longitude })
+        } else if (listing.current_address && listing.current_city) {
+          const coords = await geocodeAddress(
+            listing.current_address,
+            listing.current_city,
+            listing.current_state,
+            listing.current_zip
+          )
+          if (coords) {
+            updated.push({ ...listing, lat: coords.lat, lng: coords.lng })
+            // Save coordinates to database for future use
+            if (supabase) {
+              await supabase
+                .from('listings')
+                .update({ latitude: coords.lat, longitude: coords.lng })
+                .eq('id', listing.id)
+            }
+          }
+          // Rate limit: wait 1 second between requests (Nominatim policy)
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
+      setGeocodedListings(updated)
+    }
+
+    if (listings.length > 0) {
+      geocodeListings()
+    }
+  }, [listings])
+
+  // Initialize map
   useEffect(() => {
     if (!mapLoaded || !window.L) return
 
-    // Remove existing map
     const container = document.getElementById('map')
+    if (!container) return
+
+    // Clean up existing map
     if (container._leaflet_id) {
       container._leaflet_id = null
       container.innerHTML = ''
     }
 
-    // Create map centered on US
-    const map = window.L.map('map').setView([39.8283, -98.5795], 4)
+    // Create map centered on continental US
+    const map = window.L.map('map', {
+      center: [39.8283, -98.5795],
+      zoom: 4,
+      minZoom: 3,
+      maxZoom: 18
+    })
 
-    // Add tile layer
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    // Add tile layer (clean style)
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors, © CARTO'
     }).addTo(map)
 
-    // Custom marker icon
-    const markerIcon = window.L.divIcon({
-      className: 'custom-marker',
-      html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏠</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
-    })
-
-    // Add markers for each listing
-    listings.forEach(listing => {
-      const coords = STATE_COORDS[listing.current_state]
-      if (coords) {
-        // Add some randomness to prevent overlapping markers
-        const lat = coords[0] + (Math.random() - 0.5) * 2
-        const lng = coords[1] + (Math.random() - 0.5) * 2
-
-        const marker = window.L.marker([lat, lng], { icon: markerIcon }).addTo(map)
-        
-        const popupContent = `
-          <div style="min-width: 200px;">
-            <div style="font-weight: bold; margin-bottom: 4px;">${listing.current_city}, ${listing.current_state}</div>
-            <div style="color: #2563eb; font-size: 14px; margin-bottom: 4px;">$${listing.estimated_value?.toLocaleString()}</div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-              ${listing.beds} bed • ${listing.baths} bath • ${listing.sqft?.toLocaleString()} sqft
-            </div>
-            <div style="font-size: 12px; color: #059669; margin-bottom: 8px;">
-              Wants to move to: <strong>${listing.desired_state}</strong>
-            </div>
-            <a href="/listing/${listing.id}" style="display: block; background: #2563eb; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-size: 12px;">
-              View Details
-            </a>
-          </div>
-        `
-        marker.bindPopup(popupContent)
-      }
-    })
+    setMapInstance(map)
 
     return () => {
       map.remove()
     }
-  }, [mapLoaded, listings])
+  }, [mapLoaded])
+
+  // Add markers
+  useEffect(() => {
+    if (!mapInstance || !window.L || geocodedListings.length === 0) return
+
+    // Clear existing markers
+    markers.forEach(m => m.remove())
+
+    const newMarkers = []
+    const bounds = []
+
+    geocodedListings.forEach(listing => {
+      if (!listing.lat || !listing.lng) return
+
+      bounds.push([listing.lat, listing.lng])
+
+      // Price label marker
+      const priceLabel = window.L.divIcon({
+        className: 'price-marker',
+        html: `<div style="
+          background: ${selectedListing?.id === listing.id ? '#1d4ed8' : '#2563eb'};
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          border: 2px solid white;
+          transform: ${selectedListing?.id === listing.id ? 'scale(1.1)' : 'scale(1)'};
+        ">$${(listing.estimated_value / 1000).toFixed(0)}K</div>`,
+        iconSize: [60, 24],
+        iconAnchor: [30, 12]
+      })
+
+      const marker = window.L.marker([listing.lat, listing.lng], { icon: priceLabel }).addTo(mapInstance)
+
+      const popupContent = `
+        <div style="min-width: 220px; font-family: system-ui, sans-serif;">
+          <img src="${listing.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=200&fit=crop'}" 
+               style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
+          <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">$${listing.estimated_value?.toLocaleString()}</div>
+          <div style="color: #374151; font-size: 13px; margin-bottom: 4px;">${listing.current_address || ''}</div>
+          <div style="color: #374151; font-size: 13px; margin-bottom: 8px;">${listing.current_city}, ${listing.current_state} ${listing.current_zip || ''}</div>
+          <div style="display: flex; gap: 12px; font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+            <span>${listing.beds} bed</span>
+            <span>${listing.baths} bath</span>
+            <span>${listing.sqft?.toLocaleString()} sqft</span>
+          </div>
+          <div style="background: #ecfdf5; color: #059669; padding: 6px 8px; border-radius: 6px; font-size: 12px; margin-bottom: 10px;">
+            Wants to move to: <strong>${listing.desired_state}</strong>
+          </div>
+          <a href="/listing/${listing.id}" style="
+            display: block;
+            background: #2563eb;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+          ">View Details</a>
+        </div>
+      `
+      marker.bindPopup(popupContent, { maxWidth: 250 })
+
+      marker.on('click', () => {
+        onMarkerClick(listing)
+      })
+
+      newMarkers.push(marker)
+    })
+
+    setMarkers(newMarkers)
+
+    // Fit map to show all markers
+    if (bounds.length > 0) {
+      if (bounds.length === 1) {
+        mapInstance.setView(bounds[0], 12)
+      } else {
+        mapInstance.fitBounds(bounds, { padding: [50, 50] })
+      }
+    }
+  }, [mapInstance, geocodedListings, selectedListing])
+
+  // Center on selected listing
+  useEffect(() => {
+    if (!mapInstance || !selectedListing?.lat || !selectedListing?.lng) return
+    mapInstance.setView([selectedListing.lat, selectedListing.lng], 14)
+  }, [selectedListing, mapInstance])
 
   return (
-    <div id="map" className="w-full h-full rounded-lg" style={{ minHeight: '500px' }}></div>
+    <div id="map" className="w-full h-full" style={{ minHeight: '100%' }}></div>
   )
 }
 
 export default function BrowsePage() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('split') // 'list', 'map', 'split'
+  const [viewMode, setViewMode] = useState('split')
   const [filters, setFilters] = useState({ fromState: '', toState: '', minBeds: '' })
   const [selectedListing, setSelectedListing] = useState(null)
 
@@ -241,131 +297,134 @@ export default function BrowsePage() {
     setLoading(true)
     const supabase = createClient()
     if (!supabase) { setLoading(false); return }
-    
+
     let query = supabase.from('listings').select('*, images:listing_images(*)').eq('status', 'active')
     if (filters.fromState) query = query.eq('current_state', filters.fromState)
     if (filters.toState) query = query.eq('desired_state', filters.toState)
     if (filters.minBeds) query = query.gte('beds', parseInt(filters.minBeds))
     query = query.order('created_at', { ascending: false })
-    
+
     const { data } = await query
     setListings(data || [])
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <Navigation />
-      
-      <main className="flex-1 flex flex-col">
-        {/* Header & Filters */}
-        <div className="bg-white border-b px-4 py-3">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-bold">Browse Swap Opportunities</h1>
-                <p className="text-sm text-gray-500">{loading ? 'Loading...' : `${listings.length} listing${listings.length !== 1 ? 's' : ''} found`}</p>
-              </div>
-              
-              {/* View Toggle */}
-              <div className="flex items-center gap-2">
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button 
-                    onClick={() => setViewMode('list')} 
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${viewMode === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
-                  >
-                    <List className="w-4 h-4" /> List
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('split')} 
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium ${viewMode === 'split' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
-                  >
-                    Split
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('map')} 
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${viewMode === 'map' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
-                  >
-                    <Map className="w-4 h-4" /> Map
-                  </button>
-                </div>
-              </div>
+
+      {/* Header and Filters */}
+      <div className="bg-white border-b px-4 py-3 flex-shrink-0">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold">Browse Swap Opportunities</h1>
+              <p className="text-sm text-gray-500">{loading ? 'Loading...' : `${listings.length} listing${listings.length !== 1 ? 's' : ''} found`}</p>
             </div>
-            
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <SlidersHorizontal className="w-4 h-4 text-gray-500" />
-              <select 
-                className="border rounded-lg px-3 py-1.5 text-sm" 
-                value={filters.fromState} 
-                onChange={(e) => setFilters({...filters, fromState: e.target.value})}
+
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${viewMode === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
               >
-                <option value="">Any Location</option>
-                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select 
-                className="border rounded-lg px-3 py-1.5 text-sm" 
-                value={filters.toState} 
-                onChange={(e) => setFilters({...filters, toState: e.target.value})}
+                <List className="w-4 h-4" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('split')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${viewMode === 'split' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
               >
-                <option value="">Any Destination</option>
-                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select 
-                className="border rounded-lg px-3 py-1.5 text-sm" 
-                value={filters.minBeds} 
-                onChange={(e) => setFilters({...filters, minBeds: e.target.value})}
+                Split
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${viewMode === 'map' ? 'bg-white shadow text-gray-900' : 'text-gray-600'}`}
               >
-                <option value="">Any Beds</option>
-                <option value="2">2+ beds</option>
-                <option value="3">3+ beds</option>
-                <option value="4">4+ beds</option>
-              </select>
-              {(filters.fromState || filters.toState || filters.minBeds) && (
-                <button 
-                  onClick={() => setFilters({ fromState: '', toState: '', minBeds: '' })} 
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Clear filters
-                </button>
-              )}
+                <Map className="w-4 h-4" /> Map
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex">
-          {/* List View */}
-          {(viewMode === 'list' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'w-full md:w-1/2 lg:w-2/5' : 'w-full'} overflow-y-auto p-4 bg-gray-50`} style={{ maxHeight: 'calc(100vh - 180px)' }}>
-              {loading ? (
-                <div className="text-center py-12 text-gray-500">Loading listings...</div>
-              ) : listings.length > 0 ? (
-                <div className={`grid ${viewMode === 'list' ? 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'} gap-4`}>
-                  {listings.map((listing) => (
-                    <div key={listing.id} onClick={() => setSelectedListing(listing)}>
-                      <ListingCard listing={listing} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-white rounded-xl">
-                  <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-1">No listings found</h3>
-                  <p className="text-gray-500 text-sm">Try adjusting your filters</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Map View */}
-          {(viewMode === 'map' || viewMode === 'split') && (
-            <div className={`${viewMode === 'split' ? 'hidden md:block md:w-1/2 lg:w-3/5' : 'w-full'} bg-gray-200`} style={{ minHeight: 'calc(100vh - 180px)' }}>
-              <MapView listings={listings} onMarkerClick={setSelectedListing} />
-            </div>
-          )}
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <SlidersHorizontal className="w-4 h-4 text-gray-500" />
+            <select
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              value={filters.fromState}
+              onChange={(e) => setFilters({ ...filters, fromState: e.target.value })}
+            >
+              <option value="">Any Location</option>
+              {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              value={filters.toState}
+              onChange={(e) => setFilters({ ...filters, toState: e.target.value })}
+            >
+              <option value="">Any Destination</option>
+              {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select
+              className="border rounded-lg px-3 py-1.5 text-sm"
+              value={filters.minBeds}
+              onChange={(e) => setFilters({ ...filters, minBeds: e.target.value })}
+            >
+              <option value="">Any Beds</option>
+              <option value="2">2+ beds</option>
+              <option value="3">3+ beds</option>
+              <option value="4">4+ beds</option>
+            </select>
+            {(filters.fromState || filters.toState || filters.minBeds) && (
+              <button
+                onClick={() => setFilters({ fromState: '', toState: '', minBeds: '' })}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* List View */}
+        {(viewMode === 'list' || viewMode === 'split') && (
+          <div className={`${viewMode === 'split' ? 'w-full md:w-2/5 lg:w-1/3' : 'w-full'} overflow-y-auto p-4 bg-gray-50`}>
+            {loading ? (
+              <div className="text-center py-12 text-gray-500">Loading listings...</div>
+            ) : listings.length > 0 ? (
+              <div className={`grid ${viewMode === 'list' ? 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'} gap-4`}>
+                {listings.map((listing) => (
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    isSelected={selectedListing?.id === listing.id}
+                    onClick={() => setSelectedListing(listing)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-xl">
+                <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-600 mb-1">No listings found</h3>
+                <p className="text-gray-500 text-sm">Try adjusting your filters</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Map View */}
+        {(viewMode === 'map' || viewMode === 'split') && (
+          <div className={`${viewMode === 'split' ? 'hidden md:block md:w-3/5 lg:w-2/3' : 'w-full'}`}>
+            <MapView
+              listings={listings}
+              selectedListing={selectedListing}
+              onMarkerClick={setSelectedListing}
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
