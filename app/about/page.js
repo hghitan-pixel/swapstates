@@ -1,8 +1,8 @@
-'use client'
+ 'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, DollarSign, Clock, Users, ArrowRight } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, DollarSign, Clock, Users, ArrowRight, UserCheck } from 'lucide-react'
 
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -76,19 +76,19 @@ export default function AboutPage() {
               </p>
               
               <p>
-                During that experience, I noticed something interesting: while I was looking to move to Arizona, there were people in Arizona looking to move to places like Indiana. We were essentially looking in opposite directions.
+                During that experience, I noticed something interesting. While I was looking to move to Arizona, there were people in Arizona looking to move to places like Indiana. We were essentially looking in opposite directions.
               </p>
 
               <p>
-                That got me thinking—what if homeowners could connect directly with each other? Instead of both parties going through the traditional listing process separately, why not create a space where people could find others heading in the opposite direction?
+                That got me thinking. What if homeowners could connect directly with each other? Instead of both parties going through the traditional listing process separately, why not create a space where people could find others heading in the opposite direction?
               </p>
 
               <p>
-                That simple idea became SwapStates: a platform where homeowners can list their homes, share where they'd like to move, and connect with others who might be a good match.
+                That simple idea became SwapStates. It is a platform where homeowners can list their homes, share where they would like to move, and connect with others who might be a good match.
               </p>
               
               <p>
-                It's a straightforward concept—bringing people together who might benefit from knowing each other exist.
+                It is a straightforward concept. We bring people together who might benefit from knowing each other exist.
               </p>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function AboutPage() {
                   <div className="bg-gray-100 border-2 border-gray-300 rounded-xl p-4 text-center w-full md:w-48">
                     <Users className="w-8 h-8 text-gray-500 mx-auto mb-2" />
                     <p className="font-semibold">Wait for Buyer</p>
-                    <p className="text-sm text-gray-600">3-12 months</p>
+                    <p className="text-sm text-gray-600">3 to 12 months</p>
                   </div>
                   
                   <div className="flex flex-col items-center text-gray-400">
@@ -175,13 +175,50 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* What We Offer */}
+        {/* After the Connection */}
         <section className="py-12 md:py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">After You Connect</h2>
+            
+            <p className="text-gray-700 text-lg text-center mb-8 max-w-2xl mx-auto">
+              Once two homeowners find each other on SwapStates, you have options for how to move forward with the transaction.
+            </p>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <UserCheck className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Involve a Real Estate Agent</h3>
+                <p className="text-gray-600">
+                  After making the connection, you can bring in a real estate agent to handle the paperwork, negotiations, and closing process. The agent helps finalize the transaction while you already have your match lined up.
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-lg mb-2">Complete It Yourselves</h3>
+                <p className="text-gray-600">
+                  If both parties prefer, you can work directly with real estate attorneys and title companies to complete the transaction on your own. This gives you more control over the process and timeline.
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 text-center mt-8">
+              Either way, SwapStates helps you skip the hardest part: finding someone who wants what you have and has what you want.
+            </p>
+          </div>
+        </section>
+
+        {/* What We Offer */}
+        <section className="py-12 md:py-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">What SwapStates Offers</h2>
             
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-6">
+              <div className="text-center p-6 bg-white rounded-2xl">
                 <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="w-7 h-7 text-blue-600" />
                 </div>
@@ -189,15 +226,15 @@ export default function AboutPage() {
                 <p className="text-gray-600">A space for homeowners to find and connect with others who are moving in the opposite direction.</p>
               </div>
               
-              <div className="text-center p-6">
+              <div className="text-center p-6 bg-white rounded-2xl">
                 <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Home className="w-7 h-7 text-blue-600" />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Simple Listings</h3>
-                <p className="text-gray-600">Share your home details and where you'd like to move. Browse others doing the same.</p>
+                <p className="text-gray-600">Share your home details and where you would like to move. Browse others doing the same.</p>
               </div>
               
-              <div className="text-center p-6">
+              <div className="text-center p-6 bg-white rounded-2xl">
                 <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-7 h-7 text-blue-600" />
                 </div>
@@ -208,24 +245,12 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* A Note */}
-        <section className="py-12 md:py-16 bg-gray-50">
-          <div className="max-w-3xl mx-auto px-4">
-            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-              <h3 className="font-semibold text-lg mb-3">A Quick Note</h3>
-              <p className="text-gray-700 leading-relaxed">
-                SwapStates is a platform for making connections. When you find a potential match, you'll still want to work with appropriate professionals—real estate attorneys, title companies, inspectors—to handle the details of any transaction. We're here to help you find each other. The rest is up to you.
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* CTA */}
         <section className="py-12 md:py-16 gradient-bg text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Interested in Seeing Who's Out There?</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Interested in Seeing Who is Out There?</h2>
             <p className="text-lg text-blue-100 mb-6">
-              Browse current listings or add your own. It's free, and you might find exactly who you're looking for.
+              Browse current listings or add your own. It is free, and you might find exactly who you are looking for.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/list" className="bg-white text-blue-800 px-8 py-4 rounded-xl font-bold hover:bg-blue-50 inline-flex items-center justify-center gap-2">
