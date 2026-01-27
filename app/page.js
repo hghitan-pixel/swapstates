@@ -144,13 +144,137 @@ export default function HomePage() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-8 bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div><div className="text-2xl md:text-4xl font-bold text-blue-800">2,500+</div><div className="text-gray-600">Active Listings</div></div>
-              <div><div className="text-2xl md:text-4xl font-bold text-blue-800">48</div><div className="text-gray-600">States</div></div>
-              <div><div className="text-2xl md:text-4xl font-bold text-blue-800">340+</div><div className="text-gray-600">Successful Swaps</div></div>
-              <div><div className="text-2xl md:text-4xl font-bold text-blue-800">$45K</div><div className="text-gray-600">Avg. Saved</div></div>
+       {/* Value Comparison Section */}
+        <section className="py-12 bg-white border-b">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">Why Swap Instead of Sell?</h2>
+            <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">See how SwapStates compares to the traditional home selling process</p>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Traditional Way */}
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                  <h3 className="font-semibold text-gray-600">Traditional Selling</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Agent Commission</span>
+                    <span className="font-semibold text-gray-900">5-6% of sale</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-gray-400 h-2 rounded-full" style={{width: '100%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-600">Average Time to Sell</span>
+                    <span className="font-semibold text-gray-900">3-6 months</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-gray-400 h-2 rounded-full" style={{width: '100%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-600">Closing Costs</span>
+                    <span className="font-semibold text-gray-900">2-5% of sale</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-gray-400 h-2 rounded-full" style={{width: '80%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-600">Timing Coordination</span>
+                    <span className="font-semibold text-gray-900">Difficult</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-gray-400 h-2 rounded-full" style={{width: '90%'}}></div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">On a $400K home</span>
+                    <span className="font-bold text-xl text-gray-900">~$28,000+ in fees</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* SwapStates Way */}
+              <div className="bg-blue-50 rounded-2xl p-6 border-2 border-blue-200 relative overflow-hidden">
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">Recommended</div>
+                
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                  <h3 className="font-semibold text-blue-800">SwapStates</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700">Platform Fee</span>
+                    <span className="font-semibold text-green-600">Free to list</span>
+                  </div>
+                  <div className="w-full bg-blue-100 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full" style={{width: '5%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-700">Find a Match</span>
+                    <span className="font-semibold text-blue-700">Days to weeks</span>
+                  </div>
+                  <div className="w-full bg-blue-100 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{width: '25%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-700">Transaction Costs</span>
+                    <span className="font-semibold text-blue-700">Negotiable</span>
+                  </div>
+                  <div className="w-full bg-blue-100 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{width: '30%'}}></div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-gray-700">Timing Coordination</span>
+                    <span className="font-semibold text-green-600">Synchronized</span>
+                  </div>
+                  <div className="w-full bg-blue-100 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full" style={{width: '15%'}}></div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700">Potential savings</span>
+                    <span className="font-bold text-xl text-green-600">Up to $20,000+</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Key Benefits */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <div className="text-3xl font-bold text-blue-600 mb-1">$0</div>
+                <div className="text-sm text-gray-600">To List Your Home</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <div className="text-3xl font-bold text-blue-600 mb-1">50</div>
+                <div className="text-sm text-gray-600">States Covered</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <div className="text-3xl font-bold text-blue-600 mb-1">1:1</div>
+                <div className="text-sm text-gray-600">Direct Matching</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-xl">
+                <div className="text-3xl font-bold text-blue-600 mb-1">24/7</div>
+                <div className="text-sm text-gray-600">Browse Anytime</div>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+              t-bold text-blue-800">$45K</div><div className="text-gray-600">Avg. Saved</div></div>
             </div>
           </div>
         </section>
