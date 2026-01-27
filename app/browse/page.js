@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { ArrowLeftRight, Search, Menu, X, Bed, Bath, Square, MapPin, SlidersHorizontal, Map, List } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
@@ -40,12 +40,14 @@ function Navigation() {
   )
 }
 
-function ListingCard({ listing, isSelected, onClick }) {
+function ListingCard({ listing, isSelected, isHovered, onClick, onHover, onLeave }) {
   const image = listing.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=500&fit=crop'
   return (
     <div 
-      className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border-2 cursor-pointer ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
+      className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer border-2 ${isSelected ? 'border-blue-500' : isHovered ? 'border-blue-300' : 'border-transparent'}`}
       onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
     >
       <div className="relative">
         <img src={image} alt="Property" className="w-full h-36 object-cover" />
@@ -70,7 +72,6 @@ function ListingCard({ listing, isSelected, onClick }) {
   )
 }
 
-// Geocode address using Nominatim (free)
 async function geocodeAddress(address, city, state, zip) {
   const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}, USA`)
   try {
@@ -87,13 +88,13 @@ async function geocodeAddress(address, city, state, zip) {
   return null
 }
 
-function MapView({ listings, selectedListing, onMarkerClick }) {
+function MapView({ listings, selectedListing, hoveredListing, onMarkerClick }) {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapInstance, setMapInstance] = useState(null)
-  const [markers, setMarkers] = useState([])
+  const [markers, setMarkers] = useState({})
   const [geocodedListings, setGeocodedListings] = useState([])
+  const hoverMarkerRef = useRef(null)
 
-  // Load Leaflet
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -115,7 +116,6 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
     }
   }, [])
 
-  // Geocode listings that do not have coordinates
   useEffect(() => {
     async function geocodeListings() {
       const supabase = createClient()
@@ -133,7 +133,6 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
           )
           if (coords) {
             updated.push({ ...listing, lat: coords.lat, lng: coords.lng })
-            // Save coordinates to database for future use
             if (supabase) {
               await supabase
                 .from('listings')
@@ -141,7 +140,6 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
                 .eq('id', listing.id)
             }
           }
-          // Rate limit: wait 1 second between requests (Nominatim policy)
           await new Promise(resolve => setTimeout(resolve, 1000))
         }
       }
@@ -153,20 +151,17 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
     }
   }, [listings])
 
-  // Initialize map
   useEffect(() => {
     if (!mapLoaded || !window.L) return
 
     const container = document.getElementById('map')
     if (!container) return
 
-    // Clean up existing map
     if (container._leaflet_id) {
       container._leaflet_id = null
       container.innerHTML = ''
     }
 
-    // Create map centered on continental US
     const map = window.L.map('map', {
       center: [39.8283, -98.5795],
       zoom: 4,
@@ -174,7 +169,6 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
       maxZoom: 18
     })
 
-    // Add tile layer (clean style)
     window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap contributors, © CARTO'
     }).addTo(map)
@@ -186,14 +180,12 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
     }
   }, [mapLoaded])
 
-  // Add markers
   useEffect(() => {
     if (!mapInstance || !window.L || geocodedListings.length === 0) return
 
-    // Clear existing markers
-    markers.forEach(m => m.remove())
+    Object.values(markers).forEach(m => m.remove())
 
-    const newMarkers = []
+    const newMarkers = {}
     const bounds = []
 
     geocodedListings.forEach(listing => {
@@ -201,11 +193,13 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
 
       bounds.push([listing.lat, listing.lng])
 
-      // Price label marker
+      const isSelected = selectedListing?.id === listing.id
+      const isHovered = hoveredListing?.id === listing.id
+
       const priceLabel = window.L.divIcon({
         className: 'price-marker',
         html: `<div style="
-          background: ${selectedListing?.id === listing.id ? '#1d4ed8' : '#2563eb'};
+          background: ${isSelected || isHovered ? '#1d4ed8' : '#2563eb'};
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -214,7 +208,9 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
           white-space: nowrap;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
           border: 2px solid white;
-          transform: ${selectedListing?.id === listing.id ? 'scale(1.1)' : 'scale(1)'};
+          transform: scale(${isSelected || isHovered ? '1.2' : '1'});
+          transition: transform 0.2s;
+          z-index: ${isSelected || isHovered ? '1000' : '1'};
         ">$${(listing.estimated_value / 1000).toFixed(0)}K</div>`,
         iconSize: [60, 24],
         iconAnchor: [30, 12]
@@ -256,12 +252,11 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
         onMarkerClick(listing)
       })
 
-      newMarkers.push(marker)
+      newMarkers[listing.id] = marker
     })
 
     setMarkers(newMarkers)
 
-    // Fit map to show all markers
     if (bounds.length > 0) {
       if (bounds.length === 1) {
         mapInstance.setView(bounds[0], 12)
@@ -269,13 +264,92 @@ function MapView({ listings, selectedListing, onMarkerClick }) {
         mapInstance.fitBounds(bounds, { padding: [50, 50] })
       }
     }
-  }, [mapInstance, geocodedListings, selectedListing])
+  }, [mapInstance, geocodedListings, selectedListing, hoveredListing])
 
-  // Center on selected listing
+  // Handle hover pin marker
   useEffect(() => {
-    if (!mapInstance || !selectedListing?.lat || !selectedListing?.lng) return
-    mapInstance.setView([selectedListing.lat, selectedListing.lng], 14)
-  }, [selectedListing, mapInstance])
+    if (!mapInstance || !window.L) return
+
+    // Remove existing hover marker
+    if (hoverMarkerRef.current) {
+      hoverMarkerRef.current.remove()
+      hoverMarkerRef.current = null
+    }
+
+    // Find hovered listing in geocoded listings
+    if (hoveredListing) {
+      const listing = geocodedListings.find(l => l.id === hoveredListing.id)
+      if (listing && listing.lat && listing.lng) {
+        // Create pulsing pin marker
+        const pulsingIcon = window.L.divIcon({
+          className: 'pulsing-marker',
+          html: `
+            <div style="position: relative;">
+              <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                background: rgba(37, 99, 235, 0.3);
+                border-radius: 50%;
+                animation: pulse 1s ease-out infinite;
+              "></div>
+              <div style="
+                position: relative;
+                width: 24px;
+                height: 24px;
+                background: #2563eb;
+                border: 3px solid white;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              ">
+                <div style="
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%) rotate(45deg);
+                  width: 8px;
+                  height: 8px;
+                  background: white;
+                  border-radius: 50%;
+                "></div>
+              </div>
+            </div>
+            <style>
+              @keyframes pulse {
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+              }
+            </style>
+          `,
+          iconSize: [40, 40],
+          iconAnchor: [12, 24]
+        })
+
+        hoverMarkerRef.current = window.L.marker([listing.lat, listing.lng], { 
+          icon: pulsingIcon,
+          zIndexOffset: 1000 
+        }).addTo(mapInstance)
+
+        // Pan to the marker smoothly
+        mapInstance.panTo([listing.lat, listing.lng], { animate: true, duration: 0.3 })
+      }
+    }
+  }, [hoveredListing, mapInstance, geocodedListings])
+
+  useEffect(() => {
+    if (!mapInstance || !selectedListing) return
+    const listing = geocodedListings.find(l => l.id === selectedListing.id)
+    if (listing && listing.lat && listing.lng) {
+      mapInstance.setView([listing.lat, listing.lng], 14, { animate: true })
+      if (markers[listing.id]) {
+        markers[listing.id].openPopup()
+      }
+    }
+  }, [selectedListing, mapInstance, geocodedListings, markers])
 
   return (
     <div id="map" className="w-full h-full" style={{ minHeight: '100%' }}></div>
@@ -288,6 +362,7 @@ export default function BrowsePage() {
   const [viewMode, setViewMode] = useState('split')
   const [filters, setFilters] = useState({ fromState: '', toState: '', minBeds: '' })
   const [selectedListing, setSelectedListing] = useState(null)
+  const [hoveredListing, setHoveredListing] = useState(null)
 
   useEffect(() => {
     fetchListings()
@@ -313,7 +388,6 @@ export default function BrowsePage() {
     <div className="h-screen flex flex-col">
       <Navigation />
 
-      {/* Header and Filters */}
       <div className="bg-white border-b px-4 py-3 flex-shrink-0">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -322,7 +396,6 @@ export default function BrowsePage() {
               <p className="text-sm text-gray-500">{loading ? 'Loading...' : `${listings.length} listing${listings.length !== 1 ? 's' : ''} found`}</p>
             </div>
 
-            {/* View Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('list')}
@@ -345,7 +418,6 @@ export default function BrowsePage() {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <SlidersHorizontal className="w-4 h-4 text-gray-500" />
             <select
@@ -386,9 +458,7 @@ export default function BrowsePage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* List View */}
         {(viewMode === 'list' || viewMode === 'split') && (
           <div className={`${viewMode === 'split' ? 'w-full md:w-2/5 lg:w-1/3' : 'w-full'} overflow-y-auto p-4 bg-gray-50`}>
             {loading ? (
@@ -400,7 +470,10 @@ export default function BrowsePage() {
                     key={listing.id}
                     listing={listing}
                     isSelected={selectedListing?.id === listing.id}
+                    isHovered={hoveredListing?.id === listing.id}
                     onClick={() => setSelectedListing(listing)}
+                    onHover={() => setHoveredListing(listing)}
+                    onLeave={() => setHoveredListing(null)}
                   />
                 ))}
               </div>
@@ -414,12 +487,12 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {/* Map View */}
         {(viewMode === 'map' || viewMode === 'split') && (
           <div className={`${viewMode === 'split' ? 'hidden md:block md:w-3/5 lg:w-2/3' : 'w-full'}`}>
             <MapView
               listings={listings}
               selectedListing={selectedListing}
+              hoveredListing={hoveredListing}
               onMarkerClick={setSelectedListing}
             />
           </div>
