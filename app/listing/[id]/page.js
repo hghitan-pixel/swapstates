@@ -186,16 +186,21 @@ export default function ListingPage() {
                 )}
               </div>
 
-              <div className="border-t pt-6">
-                <button onClick={() => setShowContact(!showContact)} className="w-full md:w-auto bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
+            <div className="border-t pt-6 flex flex-col sm:flex-row gap-4">
+                <Link href={`/edit/${params.id}`} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 flex items-center justify-center gap-2">
+                  Edit Listing
+                </Link>
+                <button onClick={() => setShowContact(!showContact)} className="bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
                   <Mail className="w-5 h-5" />
                   {showContact ? 'Hide Contact Info' : 'Contact Homeowner'}
                 </button>
-                {showContact && (
-                  <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
-                    <p className="text-gray-700">To contact this homeowner, please <Link href="/list" className="text-blue-600 font-semibold hover:underline">list your home first</Link>.</p>
-                  </div>
-                )}
+              </div>
+
+              {showContact && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+                  <p className="text-gray-700">To contact this homeowner, please <Link href="/list" className="text-blue-600 font-semibold hover:underline">list your home first</Link>.</p>
+                </div>
+              )}
               </div>
             </div>
           </div>
