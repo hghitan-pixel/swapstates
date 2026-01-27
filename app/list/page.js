@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, MapPin, DollarSign, Upload, Loader2 } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, MapPin, Upload, Loader2, Image, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming']
@@ -51,6 +51,8 @@ export default function ListPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [photos, setPhotos] = useState([])
+  const [uploading, setUploading] = useState(false)
   
   const [form, setForm] = useState({
     current_address: '', current_city: '', current_state: 'Indiana', current_zip: '',
@@ -59,6 +61,34 @@ export default function ListPage() {
     desired_city: '', desired_state: 'Arizona',
     contact_name: '', contact_email: '', contact_phone: ''
   })
+
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+    if (photos.length + files.length > 10) {
+      setError('Maximum 10 photos allowed')
+      return
+    }
+
+    setUploading(true)
+    setError('')
+
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Each photo must be under 5MB')
+        continue
+      }
+
+      const preview = URL.createObjectURL(file)
+      setPhotos(prev => [...prev, { file, preview, uploaded: false }])
+    }
+    
+    setUploading(false)
+  }
+
+  const removePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -71,8 +101,9 @@ export default function ListPage() {
       return
     }
 
-    const { error: insertError } = await supabase.from('listings').insert({
-      user_id: null, // No auth for now
+    // Create listing first
+    const { data: listing, error: insertError } = await supabase.from('listings').insert({
+      user_id: null,
       status: 'active',
       current_address: form.current_address,
       current_city: form.current_city,
@@ -89,15 +120,45 @@ export default function ListPage() {
       desired_city: form.desired_city,
       desired_state: form.desired_state,
       amenities: []
-    })
+    }).select().single()
 
     if (insertError) {
       setError(insertError.message)
       setLoading(false)
-    } else {
-      setSuccess(true)
-      setLoading(false)
+      return
     }
+
+    // Upload photos
+    if (photos.length > 0 && listing) {
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i]
+        const fileExt = photo.file.name.split('.').pop()
+        const fileName = `${listing.id}/${Date.now()}-${i}.${fileExt}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('listing-images')
+          .upload(fileName, photo.file)
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError)
+          continue
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('listing-images')
+          .getPublicUrl(fileName)
+
+        await supabase.from('listing_images').insert({
+          listing_id: listing.id,
+          url: publicUrl,
+          is_primary: i === 0,
+          sort_order: i
+        })
+      }
+    }
+
+    setSuccess(true)
+    setLoading(false)
   }
 
   if (success) {
@@ -131,10 +192,10 @@ export default function ListPage() {
 
         {/* Progress Steps */}
         <div className="flex items-center mb-8">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= s ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{s}</div>
-              {s < 3 && <div className={`w-12 h-1 mx-2 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />}
+              {s < 4 && <div className={`w-8 h-1 mx-1 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
@@ -142,7 +203,7 @@ export default function ListPage() {
         <div className="bg-white rounded-2xl shadow-sm p-6">
           {error && <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-6">{error}</div>}
 
-          {/* Step 1 */}
+          {/* Step 1: Property Details */}
           {step === 1 && (
             <div>
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><Home className="w-5 h-5" />Your Current Property</h2>
@@ -206,7 +267,7 @@ export default function ListPage() {
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2: Desired Location */}
           {step === 2 && (
             <div>
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><MapPin className="w-5 h-5" />Where Do You Want to Move?</h2>
@@ -229,8 +290,57 @@ export default function ListPage() {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3: Photos */}
           {step === 3 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><Image className="w-5 h-5" />Add Photos</h2>
+              
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <label htmlFor="photo-upload" className="cursor-pointer">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload photos</p>
+                  <p className="text-sm text-gray-500">Up to 10 photos, max 5MB each</p>
+                </label>
+              </div>
+
+              {uploading && <p className="text-blue-600 text-center mb-4">Processing...</p>}
+
+              {photos.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  {photos.map((photo, index) => (
+                    <div key={index} className="relative group">
+                      <img src={photo.preview} alt={`Photo ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                      {index === 0 && <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Primary</span>}
+                      <button
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-sm text-gray-500 mb-4">{photos.length}/10 photos added</p>
+
+              <div className="mt-6 flex justify-between">
+                <button onClick={() => setStep(2)} className="text-gray-600 hover:text-gray-800">← Back</button>
+                <button onClick={() => setStep(4)} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">Next</button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Contact Info */}
+          {step === 4 && (
             <div>
               <h2 className="text-xl font-semibold mb-6">Your Contact Info</h2>
               <div className="grid md:grid-cols-2 gap-4">
@@ -248,7 +358,7 @@ export default function ListPage() {
                 </div>
               </div>
               <div className="mt-6 flex justify-between">
-                <button onClick={() => setStep(2)} className="text-gray-600 hover:text-gray-800">← Back</button>
+                <button onClick={() => setStep(3)} className="text-gray-600 hover:text-gray-800">← Back</button>
                 <button onClick={handleSubmit} disabled={loading} className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2">
                   {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Creating...</> : 'Publish Listing'}
                 </button>
