@@ -29,6 +29,7 @@ function Navigation() {
             <Link href="/" className="block py-2">Home</Link>
             <Link href="/browse" className="block py-2">Browse</Link>
             <Link href="/about" className="block py-2">Who We Are</Link>
+          <Link href="/contact" className="hover:text-blue-200">Contact</Link>
             <Link href="/list" className="block bg-white text-blue-800 text-center py-2 rounded-lg font-semibold mt-2">List Your Home</Link>
           </div>
         )}
