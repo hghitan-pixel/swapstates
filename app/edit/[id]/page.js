@@ -22,14 +22,23 @@ function Navigation() {
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className="hover:text-blue-200">Home</Link>
             <Link href="/browse" className="hover:text-blue-200">Browse</Link>
-    <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
-    <Link href="/contact" className="hover:text-blue-200">Contact</Link>
-            <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold">List Your Home</Link>
+            <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
+            <Link href="/contact" className="hover:text-blue-200">Contact</Link>
+            <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">List Your Home</Link>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2">
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
+        {menuOpen && (
+          <div className="md:hidden mt-4 space-y-2 pb-4">
+            <Link href="/" className="block py-2">Home</Link>
+            <Link href="/browse" className="block py-2">Browse</Link>
+            <Link href="/about" className="block py-2">Who We Are</Link>
+            <Link href="/contact" className="block py-2">Contact</Link>
+            <Link href="/list" className="block bg-white text-blue-800 text-center py-2 rounded-lg font-semibold mt-2">List Your Home</Link>
+          </div>
+        )}
       </div>
     </nav>
   )
