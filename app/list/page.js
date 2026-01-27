@@ -21,13 +21,21 @@ function Navigation() {
           <div className="hidden md:flex items-center space-x-6">
             <Link href="/" className="hover:text-blue-200">Home</Link>
             <Link href="/browse" className="hover:text-blue-200">Browse</Link>
-             <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
+            <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
             <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold">List Your Home</Link>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2">
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
+        {menuOpen && (
+          <div className="md:hidden mt-4 space-y-2 pb-4">
+            <Link href="/" className="block py-2">Home</Link>
+            <Link href="/browse" className="block py-2">Browse</Link>
+            <Link href="/about" className="block py-2">Who We Are</Link>
+            <Link href="/list" className="block bg-white text-blue-800 text-center py-2 rounded-lg font-semibold mt-2">List Your Home</Link>
+          </div>
+        )}
       </div>
     </nav>
   )
@@ -47,6 +55,50 @@ function Footer() {
   )
 }
 
+// Geocode address to get coordinates
+async function geocodeAddress(address, city, state, zip) {
+  const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}, USA`)
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&addressdetails=1`, {
+      headers: { 
+        'User-Agent': 'SwapStates/1.0 (https://swapstates.com)',
+        'Accept': 'application/json'
+      }
+    })
+    const data = await response.json()
+    if (data && data.length > 0) {
+      return { 
+        lat: parseFloat(data[0].lat), 
+        lng: parseFloat(data[0].lon) 
+      }
+    }
+  } catch (err) {
+    console.error('Geocoding error:', err)
+  }
+  
+  // Fallback: try with just city and state
+  try {
+    const fallbackQuery = encodeURIComponent(`${city}, ${state}, USA`)
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${fallbackQuery}&limit=1`, {
+      headers: { 
+        'User-Agent': 'SwapStates/1.0 (https://swapstates.com)',
+        'Accept': 'application/json'
+      }
+    })
+    const data = await response.json()
+    if (data && data.length > 0) {
+      return { 
+        lat: parseFloat(data[0].lat), 
+        lng: parseFloat(data[0].lon) 
+      }
+    }
+  } catch (err) {
+    console.error('Fallback geocoding error:', err)
+  }
+  
+  return null
+}
+
 export default function ListPage() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -54,6 +106,7 @@ export default function ListPage() {
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [geocodingStatus, setGeocodingStatus] = useState('')
   
   const [form, setForm] = useState({
     current_address: '', current_city: '', current_state: 'Indiana', current_zip: '',
@@ -102,7 +155,29 @@ export default function ListPage() {
       return
     }
 
-    // Create listing first
+    // Step 1: Geocode the address
+    setGeocodingStatus('Finding location on map...')
+    let latitude = null
+    let longitude = null
+    
+    if (form.current_address && form.current_city && form.current_state) {
+      const coords = await geocodeAddress(
+        form.current_address,
+        form.current_city,
+        form.current_state,
+        form.current_zip
+      )
+      if (coords) {
+        latitude = coords.lat
+        longitude = coords.lng
+        setGeocodingStatus('Location found!')
+      } else {
+        setGeocodingStatus('Could not find exact location, using city center')
+      }
+    }
+
+    // Step 2: Create listing with coordinates
+    setGeocodingStatus('Creating listing...')
     const { data: listing, error: insertError } = await supabase.from('listings').insert({
       user_id: null,
       status: 'active',
@@ -120,17 +195,21 @@ export default function ListPage() {
       description: form.description,
       desired_city: form.desired_city,
       desired_state: form.desired_state,
-      amenities: []
+      amenities: [],
+      latitude: latitude,
+      longitude: longitude
     }).select().single()
 
     if (insertError) {
       setError(insertError.message)
       setLoading(false)
+      setGeocodingStatus('')
       return
     }
 
-    // Upload photos
+    // Step 3: Upload photos
     if (photos.length > 0 && listing) {
+      setGeocodingStatus('Uploading photos...')
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i]
         const fileExt = photo.file.name.split('.').pop()
@@ -158,6 +237,7 @@ export default function ListPage() {
       }
     }
 
+    setGeocodingStatus('')
     setSuccess(true)
     setLoading(false)
   }
@@ -210,22 +290,23 @@ export default function ListPage() {
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><Home className="w-5 h-5" />Your Current Property</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" value={form.current_address} onChange={(e) => setForm({...form, current_address: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address <span className="text-red-500">*</span></label>
+                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="123 Main Street" value={form.current_address} onChange={(e) => setForm({...form, current_address: e.target.value})} />
+                  <p className="text-xs text-gray-500 mt-1">Enter your full street address for accurate map placement</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" value={form.current_city} onChange={(e) => setForm({...form, current_city: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
+                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="Indianapolis" value={form.current_city} onChange={(e) => setForm({...form, current_city: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State <span className="text-red-500">*</span></label>
                   <select className="w-full border rounded-lg px-4 py-2" value={form.current_state} onChange={(e) => setForm({...form, current_state: e.target.value})}>
                     {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" value={form.current_zip} onChange={(e) => setForm({...form, current_zip: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code <span className="text-red-500">*</span></label>
+                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="46201" value={form.current_zip} onChange={(e) => setForm({...form, current_zip: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
@@ -234,36 +315,48 @@ export default function ListPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
-                  <input type="number" className="w-full border rounded-lg px-4 py-2" value={form.beds} onChange={(e) => setForm({...form, beds: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bedrooms <span className="text-red-500">*</span></label>
+                  <input type="number" className="w-full border rounded-lg px-4 py-2" placeholder="3" value={form.beds} onChange={(e) => setForm({...form, beds: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
-                  <input type="number" step="0.5" className="w-full border rounded-lg px-4 py-2" value={form.baths} onChange={(e) => setForm({...form, baths: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bathrooms <span className="text-red-500">*</span></label>
+                  <input type="number" step="0.5" className="w-full border rounded-lg px-4 py-2" placeholder="2" value={form.baths} onChange={(e) => setForm({...form, baths: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Square Feet</label>
-                  <input type="number" className="w-full border rounded-lg px-4 py-2" value={form.sqft} onChange={(e) => setForm({...form, sqft: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Square Feet <span className="text-red-500">*</span></label>
+                  <input type="number" className="w-full border rounded-lg px-4 py-2" placeholder="1800" value={form.sqft} onChange={(e) => setForm({...form, sqft: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Year Built</label>
-                  <input type="number" className="w-full border rounded-lg px-4 py-2" value={form.year_built} onChange={(e) => setForm({...form, year_built: e.target.value})} />
+                  <input type="number" className="w-full border rounded-lg px-4 py-2" placeholder="1995" value={form.year_built} onChange={(e) => setForm({...form, year_built: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Value</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Value <span className="text-red-500">*</span></label>
                   <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="$375,000" value={form.estimated_value} onChange={(e) => setForm({...form, estimated_value: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Monthly HOA</label>
-                  <input type="number" className="w-full border rounded-lg px-4 py-2" value={form.hoa_monthly} onChange={(e) => setForm({...form, hoa_monthly: e.target.value})} />
+                  <input type="number" className="w-full border rounded-lg px-4 py-2" placeholder="0" value={form.hoa_monthly} onChange={(e) => setForm({...form, hoa_monthly: e.target.value})} />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea className="w-full border rounded-lg px-4 py-2 h-24" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
+                  <textarea className="w-full border rounded-lg px-4 py-2 h-24" placeholder="Tell potential swap partners about your home..." value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} />
                 </div>
               </div>
               <div className="mt-6 flex justify-end">
-                <button onClick={() => setStep(2)} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">Next</button>
+                <button 
+                  onClick={() => {
+                    if (!form.current_address || !form.current_city || !form.current_zip || !form.beds || !form.baths || !form.sqft || !form.estimated_value) {
+                      setError('Please fill in all required fields marked with *')
+                      return
+                    }
+                    setError('')
+                    setStep(2)
+                  }} 
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700"
+                >
+                  Next
+                </button>
               </div>
             </div>
           )}
@@ -274,14 +367,14 @@ export default function ListPage() {
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><MapPin className="w-5 h-5" />Where Do You Want to Move?</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Desired State</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Desired State <span className="text-red-500">*</span></label>
                   <select className="w-full border rounded-lg px-4 py-2" value={form.desired_state} onChange={(e) => setForm({...form, desired_state: e.target.value})}>
                     {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Preferred City (Optional)</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" value={form.desired_city} onChange={(e) => setForm({...form, desired_city: e.target.value})} />
+                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="Phoenix" value={form.desired_city} onChange={(e) => setForm({...form, desired_city: e.target.value})} />
                 </div>
               </div>
               <div className="mt-6 flex justify-between">
@@ -347,17 +440,25 @@ export default function ListPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" value={form.contact_name} onChange={(e) => setForm({...form, contact_name: e.target.value})} />
+                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="John Smith" value={form.contact_name} onChange={(e) => setForm({...form, contact_name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" className="w-full border rounded-lg px-4 py-2" value={form.contact_email} onChange={(e) => setForm({...form, contact_email: e.target.value})} />
+                  <input type="email" className="w-full border rounded-lg px-4 py-2" placeholder="john@email.com" value={form.contact_email} onChange={(e) => setForm({...form, contact_email: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="tel" className="w-full border rounded-lg px-4 py-2" value={form.contact_phone} onChange={(e) => setForm({...form, contact_phone: e.target.value})} />
+                  <input type="tel" className="w-full border rounded-lg px-4 py-2" placeholder="(555) 123-4567" value={form.contact_phone} onChange={(e) => setForm({...form, contact_phone: e.target.value})} />
                 </div>
               </div>
+              
+              {geocodingStatus && (
+                <div className="mt-4 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {geocodingStatus}
+                </div>
+              )}
+              
               <div className="mt-6 flex justify-between">
                 <button onClick={() => setStep(3)} className="text-gray-600 hover:text-gray-800">← Back</button>
                 <button onClick={handleSubmit} disabled={loading} className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2">
