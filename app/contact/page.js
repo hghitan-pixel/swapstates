@@ -20,7 +20,7 @@ function Navigation() {
             <Link href="/browse" className="hover:text-blue-200">Browse</Link>
             <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
             <Link href="/contact" className="hover:text-blue-200">Contact</Link>
-            <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">List Your Home</Link>
+                       <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">List Your Home</Link>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2">
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
