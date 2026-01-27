@@ -255,12 +255,9 @@ export default function ContactPage() {
               </form>
             </div>
 
-            {/* Direct Contact */}
+          {/* Response Time Note */}
             <div className="mt-8 text-center">
-              <p className="text-gray-600 mb-2">Or reach us directly at:</p>
-              <a href="mailto:hghitan@gmail.com" className="text-blue-600 font-semibold hover:underline text-lg">
-                hghitan@gmail.com
-              </a>
+              <p className="text-gray-500 text-sm">We typically respond within 24-48 hours.</p>
             </div>
           </div>
         </section>
