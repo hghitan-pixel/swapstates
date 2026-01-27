@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Home, Search, Check, ArrowRight, Menu, X, Bed, Bath, Square, MapPin } from 'lucide-react'
+import { ArrowLeftRight, Home, Search, Check, ArrowRight, Menu, X, Bed, Bath, Square, MapPin, Clock, DollarSign, Users, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
-// Navigation Component
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
@@ -41,7 +40,6 @@ function Navigation() {
   )
 }
 
-// Footer Component
 function Footer() {
   return (
     <footer className="bg-gray-800 text-gray-300 py-8">
@@ -51,6 +49,11 @@ function Footer() {
           <span className="text-xl font-bold">SwapStates</span>
         </div>
         <p className="text-center text-sm">Making cross-state relocation easier through direct home swaps.</p>
+        <div className="flex justify-center gap-6 mt-4 text-sm">
+          <Link href="/about" className="hover:text-white">Who We Are</Link>
+          <Link href="/contact" className="hover:text-white">Contact</Link>
+          <Link href="/browse" className="hover:text-white">Browse</Link>
+        </div>
         <div className="border-t border-gray-700 mt-6 pt-6 text-sm text-center">
           © {new Date().getFullYear()} SwapStates. All rights reserved.
         </div>
@@ -59,7 +62,6 @@ function Footer() {
   )
 }
 
-// Listing Card Component
 function ListingCard({ listing }) {
   const image = listing.images?.[0]?.url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=500&fit=crop'
   
@@ -93,7 +95,6 @@ function ListingCard({ listing }) {
   )
 }
 
-// Main Homepage
 export default function HomePage() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -143,8 +144,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Stats Section */}
-       {/* Value Comparison Section */}
+        {/* Value Comparison Section */}
         <section className="py-12 bg-white border-b">
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">Why Swap Instead of Sell?</h2>
@@ -271,11 +271,6 @@ export default function HomePage() {
                 <div className="text-sm text-gray-600">Browse Anytime</div>
               </div>
             </div>
-            
-          </div>
-        </section>
-              t-bold text-blue-800">$45K</div><div className="text-gray-600">Avg. Saved</div></div>
-            </div>
           </div>
         </section>
 
@@ -284,19 +279,32 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">How SwapStates Works</h2>
             <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { icon: Home, title: '1. List Your Home', desc: "Add your property details and where you want to move. It's free." },
-                { icon: Search, title: '2. Find Matches', desc: 'Our algorithm finds homeowners who want to swap in the opposite direction.' },
-                { icon: ArrowLeftRight, title: '3. Swap & Move', desc: 'Connect, negotiate, and complete your swap with our guided process.' }
-              ].map((item, i) => (
-                <div key={i} className="bg-white p-6 rounded-2xl shadow-sm text-center">
-                  <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <item.icon className="w-7 h-7 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                  <p className="text-gray-600 text-sm">{item.desc}</p>
+              <div className="bg-white p-6 rounded-2xl shadow-sm text-center relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</div>
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
+                  <Home className="w-7 h-7 text-blue-600" />
                 </div>
-              ))}
+                <h3 className="text-lg font-semibold mb-2">List Your Home</h3>
+                <p className="text-gray-600 text-sm">Add your property details and where you want to move. It takes less than 5 minutes and it is completely free.</p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm text-center relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</div>
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
+                  <Search className="w-7 h-7 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Find Matches</h3>
+                <p className="text-gray-600 text-sm">Browse homeowners who want to swap in the opposite direction. Filter by state, home size, and more.</p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm text-center relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</div>
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
+                  <ArrowLeftRight className="w-7 h-7 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Connect and Swap</h3>
+                <p className="text-gray-600 text-sm">Reach out to potential matches, discuss details, and complete the swap with or without an agent.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -304,7 +312,12 @@ export default function HomePage() {
         {/* Featured Listings */}
         <section className="py-12 bg-white">
           <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Featured Swap Opportunities</h2>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold">Recent Listings</h2>
+              <Link href="/browse" className="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
             
             {loading ? (
               <div className="text-center py-12 text-gray-500">Loading listings...</div>
@@ -327,25 +340,50 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Why Swap */}
-        <section className="py-12 bg-blue-50">
+        {/* Benefits Section */}
+        <section className="py-12 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Why Swap Instead of Sell?</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">The SwapStates Advantage</h2>
             <div className="grid md:grid-cols-2 gap-4">
-              {[
-                { title: 'Skip the Slow Market', desc: 'No waiting months for a buyer' },
-                { title: 'Save on Commissions', desc: 'Potential to save 5-6% in agent fees' },
-                { title: 'Synchronized Timing', desc: 'Move in when they move out' },
-                { title: 'No Bridge Loans', desc: 'Avoid carrying two mortgages' }
-              ].map((item, i) => (
-                <div key={i} className="flex gap-3 bg-white p-4 rounded-xl">
-                  <Check className="w-6 h-6 text-green-600 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold">{item.title}</div>
-                    <div className="text-sm text-gray-600">{item.desc}</div>
-                  </div>
+              <div className="flex gap-4 bg-white p-5 rounded-xl">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="w-5 h-5 text-green-600" />
                 </div>
-              ))}
+                <div>
+                  <h4 className="font-semibold mb-1">Save on Commissions</h4>
+                  <p className="text-gray-600 text-sm">Connect directly with other homeowners. Decide together how to handle the transaction.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4 bg-white p-5 rounded-xl">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Skip the Waiting</h4>
+                  <p className="text-gray-600 text-sm">No more waiting months for a buyer. Find someone ready to swap now.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4 bg-white p-5 rounded-xl">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Synchronized Timing</h4>
+                  <p className="text-gray-600 text-sm">Move out when they move out. No bridge loans or double mortgages needed.</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4 bg-white p-5 rounded-xl">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Aligned Interests</h4>
+                  <p className="text-gray-600 text-sm">Both parties want the deal to work. You are partners, not adversaries.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -353,8 +391,8 @@ export default function HomePage() {
         {/* CTA */}
         <section className="py-12 gradient-bg text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Swap Your Way to a New Home?</h2>
-            <p className="text-lg text-blue-100 mb-6">Join homeowners who've discovered a smarter way to relocate.</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Find Your Swap Match?</h2>
+            <p className="text-lg text-blue-100 mb-6">Join homeowners who are discovering a smarter way to relocate.</p>
             <Link href="/list" className="bg-white text-blue-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 shadow-lg inline-block">
               Get Started Free
             </Link>
