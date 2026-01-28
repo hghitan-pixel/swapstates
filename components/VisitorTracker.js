@@ -4,38 +4,39 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
-export default function VisitorTracker({ listingId = null }) {
+export default function VisitorTracker() {
   const pathname = usePathname()
 
   useEffect(() => {
     async function logVisit() {
+      // Don't track admin page
+      if (pathname === '/admin') return
+
       const supabase = createClient()
       if (!supabase) return
 
-      // Don't track if it's the same page within 5 minutes (use sessionStorage)
-      const lastVisit = sessionStorage.getItem('lastVisit')
-      const lastPath = sessionStorage.getItem('lastPath')
+      // Rate limit: only log once per page every 5 minutes
+      const storageKey = `visit_${pathname}`
+      const lastVisit = sessionStorage.getItem(storageKey)
       const now = Date.now()
 
-      if (lastPath === pathname && lastVisit && (now - parseInt(lastVisit)) < 300000) {
-        return // Skip if same page visited within 5 minutes
+      if (lastVisit && (now - parseInt(lastVisit)) < 300000) {
+        return
       }
 
-      // Log the visit
+      // Log the visit (no email, just database)
       await supabase.from('visitor_logs').insert({
         page: pathname,
-        listing_id: listingId,
+        listing_id: pathname.startsWith('/listing/') ? pathname.split('/')[2] : null,
         user_agent: navigator.userAgent,
         referrer: document.referrer || null
       })
 
-      // Update session storage
-      sessionStorage.setItem('lastVisit', now.toString())
-      sessionStorage.setItem('lastPath', pathname)
+      sessionStorage.setItem(storageKey, now.toString())
     }
 
     logVisit()
-  }, [pathname, listingId])
+  }, [pathname])
 
-  return null // This component doesn't render anything
+  return null
 }
