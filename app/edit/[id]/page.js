@@ -6,6 +6,42 @@ import Link from 'next/link'
 import { ArrowLeftRight, Menu, X, Bed, Bath, Square, MapPin, Calendar, ArrowLeft, Home, Mail, Edit, Loader2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
+function VisitorTracker({ listingId }) {
+  useEffect(() => {
+    async function logVisit() {
+      const supabase = createClient()
+      if (!supabase) return
+
+      // Don't track if it's the same listing within 5 minutes
+      const lastVisit = sessionStorage.getItem('lastListingVisit')
+      const lastListing = sessionStorage.getItem('lastListingId')
+      const now = Date.now()
+
+      if (lastListing === listingId && lastVisit && (now - parseInt(lastVisit)) < 300000) {
+        return
+      }
+
+      // Log the visit
+      await supabase.from('visitor_logs').insert({
+        page: `/listing/${listingId}`,
+        listing_id: listingId,
+        user_agent: navigator.userAgent,
+        referrer: document.referrer || null
+      })
+
+      // Update session storage
+      sessionStorage.setItem('lastListingVisit', now.toString())
+      sessionStorage.setItem('lastListingId', listingId)
+    }
+
+    if (listingId) {
+      logVisit()
+    }
+  }, [listingId])
+
+  return null
+}
+
 function Navigation({ user }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
@@ -101,10 +137,7 @@ export default function ListingPage() {
       if (data) {
         setListing(data)
         
-        // IMPORTANT: Only set isOwner to true if ALL conditions are met:
-        // 1. User is logged in (user exists)
-        // 2. Listing has a user_id (not null)
-        // 3. The IDs match
+        // Only set isOwner to true if ALL conditions are met
         const ownerCheck = !!(user && data.user_id && user.id === data.user_id)
         setIsOwner(ownerCheck)
       }
@@ -149,6 +182,10 @@ export default function ListingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation user={currentUser} />
+      
+      {/* Visitor Tracker */}
+      <VisitorTracker listingId={params.id} />
+      
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/browse" className="inline-flex items-center text-blue-600 hover:text-blue-800">
@@ -235,13 +272,11 @@ export default function ListingPage() {
               {checkComplete && (
                 <div className="border-t pt-6">
                   {isOwner ? (
-                    // Owner sees Edit button only
                     <Link href={`/edit/${params.id}`} className="inline-flex bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 items-center justify-center gap-2">
                       <Edit className="w-5 h-5" />
                       Edit Listing
                     </Link>
                   ) : (
-                    // Non-owner sees Contact button only
                     <div>
                       <button onClick={() => setShowContact(!showContact)} className="bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
                         <Mail className="w-5 h-5" />
