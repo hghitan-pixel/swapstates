@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Bed, Bath, Square, MapPin, Calendar, ArrowLeft, Home, Mail, Edit, Loader2 } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Bed, Bath, Square, MapPin, Calendar, ArrowLeft, Home, Mail, Edit, Loader2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
-function Navigation() {
+function Navigation({ user }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <nav className="gradient-bg text-white shadow-lg sticky top-0 z-50">
@@ -21,6 +21,15 @@ function Navigation() {
             <Link href="/browse" className="hover:text-blue-200">Browse</Link>
             <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
             <Link href="/contact" className="hover:text-blue-200">Contact</Link>
+            {user ? (
+              <Link href="/dashboard" className="hover:text-blue-200 flex items-center gap-1">
+                <User className="w-4 h-4" /> Dashboard
+              </Link>
+            ) : (
+              <Link href="/login" className="hover:text-blue-200 flex items-center gap-1">
+                <User className="w-4 h-4" /> Sign In
+              </Link>
+            )}
             <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">List Your Home</Link>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2">
@@ -33,6 +42,11 @@ function Navigation() {
             <Link href="/browse" className="block py-2">Browse</Link>
             <Link href="/about" className="block py-2">Who We Are</Link>
             <Link href="/contact" className="block py-2">Contact</Link>
+            {user ? (
+              <Link href="/dashboard" className="block py-2">Dashboard</Link>
+            ) : (
+              <Link href="/login" className="block py-2">Sign In / Sign Up</Link>
+            )}
             <Link href="/list" className="block bg-white text-blue-800 text-center py-2 rounded-lg font-semibold mt-2">List Your Home</Link>
           </div>
         )}
@@ -59,21 +73,23 @@ export default function ListingPage() {
   const params = useParams()
   const [listing, setListing] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [authChecked, setAuthChecked] = useState(false)
   const [showContact, setShowContact] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [checkComplete, setCheckComplete] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient()
       if (!supabase || !params.id) {
         setLoading(false)
-        setAuthChecked(true)
+        setCheckComplete(true)
         return
       }
 
       // Get current user first
       const { data: { user } } = await supabase.auth.getUser()
+      setCurrentUser(user)
 
       // Get listing
       const { data } = await supabase
@@ -84,15 +100,16 @@ export default function ListingPage() {
 
       if (data) {
         setListing(data)
-        // Check if current user is the owner - only true if user exists AND matches
-        if (user && data.user_id && user.id === data.user_id) {
-          setIsOwner(true)
-        } else {
-          setIsOwner(false)
-        }
+        
+        // IMPORTANT: Only set isOwner to true if ALL conditions are met:
+        // 1. User is logged in (user exists)
+        // 2. Listing has a user_id (not null)
+        // 3. The IDs match
+        const ownerCheck = !!(user && data.user_id && user.id === data.user_id)
+        setIsOwner(ownerCheck)
       }
       
-      setAuthChecked(true)
+      setCheckComplete(true)
       setLoading(false)
     }
     fetchData()
@@ -101,7 +118,7 @@ export default function ListingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation />
+        <Navigation user={currentUser} />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </main>
@@ -113,7 +130,7 @@ export default function ListingPage() {
   if (!listing) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation />
+        <Navigation user={currentUser} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -131,7 +148,7 @@ export default function ListingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
+      <Navigation user={currentUser} />
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <Link href="/browse" className="inline-flex items-center text-blue-600 hover:text-blue-800">
@@ -214,30 +231,28 @@ export default function ListingPage() {
                 )}
               </div>
 
-              {/* Action Buttons - Only show after auth check is complete */}
-              {authChecked && (
+              {/* Action Buttons - Only render after check is complete */}
+              {checkComplete && (
                 <div className="border-t pt-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Only show Edit button if user is the owner */}
-                    {isOwner === true && (
-                      <Link href={`/edit/${params.id}`} className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 flex items-center justify-center gap-2">
-                        <Edit className="w-5 h-5" />
-                        Edit Listing
-                      </Link>
-                    )}
-                    
-                    {/* Only show Contact button if user is NOT the owner */}
-                    {isOwner === false && (
+                  {isOwner ? (
+                    // Owner sees Edit button only
+                    <Link href={`/edit/${params.id}`} className="inline-flex bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 items-center justify-center gap-2">
+                      <Edit className="w-5 h-5" />
+                      Edit Listing
+                    </Link>
+                  ) : (
+                    // Non-owner sees Contact button only
+                    <div>
                       <button onClick={() => setShowContact(!showContact)} className="bg-green-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
                         <Mail className="w-5 h-5" />
                         {showContact ? 'Hide Contact Info' : 'Contact Homeowner'}
                       </button>
-                    )}
-                  </div>
-
-                  {showContact && isOwner === false && (
-                    <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
-                      <p className="text-gray-700">To contact this homeowner, please <Link href="/list" className="text-blue-600 font-semibold hover:underline">list your home first</Link>.</p>
+                      
+                      {showContact && (
+                        <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+                          <p className="text-gray-700">To contact this homeowner, please <Link href="/list" className="text-blue-600 font-semibold hover:underline">list your home first</Link>.</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
