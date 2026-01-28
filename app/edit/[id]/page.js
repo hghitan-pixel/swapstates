@@ -1,5 +1,7 @@
 'use client'
-
+import { useRouter } from 'next/navigation'
+// ... inside component:
+const router = useRouter()
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -76,13 +78,57 @@ export default function EditListingPage() {
     desired_city: '', desired_state: ''
   })
 
-  useEffect(() => {
+useEffect(() => {
     async function fetchListing() {
       const supabase = createClient()
       if (!supabase || !params.id) {
         setLoading(false)
         return
       }
+
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('*, images:listing_images(*)')
+        .eq('id', params.id)
+        .single()
+
+      // Check if user owns this listing
+      if (!listing || listing.user_id !== user.id) {
+        setError('You do not have permission to edit this listing')
+        setLoading(false)
+        return
+      }
+
+      if (listing) {
+        setForm({
+          current_address: listing.current_address || '',
+          current_city: listing.current_city || '',
+          current_state: listing.current_state || '',
+          current_zip: listing.current_zip || '',
+          property_type: listing.property_type || 'Single Family',
+          beds: listing.beds?.toString() || '',
+          baths: listing.baths?.toString() || '',
+          sqft: listing.sqft?.toString() || '',
+          year_built: listing.year_built?.toString() || '',
+          estimated_value: listing.estimated_value?.toString() || '',
+          hoa_monthly: listing.hoa_monthly?.toString() || '0',
+          description: listing.description || '',
+          desired_city: listing.desired_city || '',
+          desired_state: listing.desired_state || ''
+        })
+        setExistingPhotos(listing.images || [])
+      }
+      setLoading(false)
+    }
+    fetchListing()
+  }, [params.id, router])
 
       const { data: listing } = await supabase
         .from('listings')
