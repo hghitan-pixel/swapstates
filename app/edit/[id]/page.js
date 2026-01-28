@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, MapPin, Upload, Loader2, Trash2, ArrowLeft, LogOut, User, Save } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, MapPin, Upload, Loader2, Trash2, ArrowLeft, User, Save, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming']
 const PROPERTY_TYPES = ['Single Family', 'Townhouse', 'Condo', 'Multi-Family']
 
-function Navigation({ user, onLogout }) {
+function Navigation({ user }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <nav className="gradient-bg text-white shadow-lg sticky top-0 z-50">
@@ -84,6 +84,7 @@ export default function EditListingPage() {
   const [existingPhotos, setExistingPhotos] = useState([])
   const [newPhotos, setNewPhotos] = useState([])
   const [deletingPhoto, setDeletingPhoto] = useState(null)
+  const [settingPrimary, setSettingPrimary] = useState(null)
   
   const [form, setForm] = useState({
     current_address: '',
@@ -111,7 +112,6 @@ export default function EditListingPage() {
         return
       }
 
-      // Get current user
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
       
       if (authError || !currentUser) {
@@ -121,7 +121,6 @@ export default function EditListingPage() {
       
       setUser(currentUser)
 
-      // Fetch listing - use maybeSingle() to avoid errors
       const { data: listingData, error: listingError } = await supabase
         .from('listings')
         .select('*, images:listing_images(*)')
@@ -129,7 +128,6 @@ export default function EditListingPage() {
         .maybeSingle()
 
       if (listingError) {
-        console.error('Listing fetch error:', listingError)
         setError('Error fetching listing: ' + listingError.message)
         setLoading(false)
         return
@@ -141,7 +139,6 @@ export default function EditListingPage() {
         return
       }
 
-      // Check ownership
       if (listingData.user_id !== currentUser.id) {
         setError('You do not have permission to edit this listing')
         setLoading(false)
@@ -165,27 +162,26 @@ export default function EditListingPage() {
         desired_city: listingData.desired_city || '',
         desired_state: listingData.desired_state || ''
       })
-      setExistingPhotos(listingData.images || [])
+      
+      // Sort photos: primary first, then by sort_order
+      const sortedPhotos = (listingData.images || []).sort((a, b) => {
+        if (a.is_primary && !b.is_primary) return -1
+        if (!a.is_primary && b.is_primary) return 1
+        return a.sort_order - b.sort_order
+      })
+      setExistingPhotos(sortedPhotos)
       setLoading(false)
     }
 
     fetchData()
   }, [params.id, router])
 
-  async function handleLogout() {
-    const supabase = createClient()
-    if (supabase) {
-      await supabase.auth.signOut()
-    }
-    router.push('/')
-  }
-
   function handlePhotoUpload(e) {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
     
-    if (existingPhotos.length + newPhotos.length + files.length > 10) {
-      setError('Maximum 10 photos allowed')
+    if (existingPhotos.length + newPhotos.length + files.length > 20) {
+      setError('Maximum 20 photos allowed')
       return
     }
 
@@ -202,6 +198,11 @@ export default function EditListingPage() {
   }
 
   async function handleDeleteExistingPhoto(photo) {
+    if (photo.is_primary && existingPhotos.length > 1) {
+      setError('Please set another photo as primary before deleting this one')
+      return
+    }
+    
     setDeletingPhoto(photo.id)
     const supabase = createClient()
     if (!supabase) return
@@ -221,6 +222,46 @@ export default function EditListingPage() {
     setDeletingPhoto(null)
   }
 
+  async function handleSetPrimary(photo) {
+    setSettingPrimary(photo.id)
+    const supabase = createClient()
+    if (!supabase) return
+
+    // First, set all photos to non-primary
+    await supabase
+      .from('listing_images')
+      .update({ is_primary: false })
+      .eq('listing_id', params.id)
+
+    // Then set the selected photo as primary
+    const { error } = await supabase
+      .from('listing_images')
+      .update({ is_primary: true, sort_order: 0 })
+      .eq('id', photo.id)
+
+    if (error) {
+      setError('Failed to set primary photo: ' + error.message)
+      setSettingPrimary(null)
+      return
+    }
+
+    // Update local state
+    setExistingPhotos(prev => {
+      const updated = prev.map(p => ({
+        ...p,
+        is_primary: p.id === photo.id
+      }))
+      // Sort: primary first
+      return updated.sort((a, b) => {
+        if (a.is_primary && !b.is_primary) return -1
+        if (!a.is_primary && b.is_primary) return 1
+        return a.sort_order - b.sort_order
+      })
+    })
+    
+    setSettingPrimary(null)
+  }
+
   function handleRemoveNewPhoto(index) {
     setNewPhotos(prev => prev.filter((_, i) => i !== index))
   }
@@ -237,7 +278,6 @@ export default function EditListingPage() {
       return
     }
 
-    // Update listing
     const { error: updateError } = await supabase
       .from('listings')
       .update({
@@ -267,6 +307,8 @@ export default function EditListingPage() {
 
     // Upload new photos
     if (newPhotos.length > 0) {
+      const currentCount = existingPhotos.length
+      
       for (let i = 0; i < newPhotos.length; i++) {
         const photo = newPhotos[i]
         const fileExt = photo.file.name.split('.').pop()
@@ -281,16 +323,20 @@ export default function EditListingPage() {
           continue
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: urlData } = supabase.storage
           .from('listing-images')
           .getPublicUrl(fileName)
 
-        await supabase.from('listing_images').insert({
+        const { error: dbError } = await supabase.from('listing_images').insert({
           listing_id: params.id,
-          url: publicUrl,
-          is_primary: existingPhotos.length === 0 && i === 0,
-          sort_order: existingPhotos.length + i
+          url: urlData.publicUrl,
+          is_primary: currentCount === 0 && i === 0,
+          sort_order: currentCount + i + 1
         })
+
+        if (dbError) {
+          console.error('Database insert error:', dbError)
+        }
       }
     }
 
@@ -301,7 +347,7 @@ export default function EditListingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation user={user} onLogout={handleLogout} />
+        <Navigation user={user} />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </main>
@@ -313,7 +359,7 @@ export default function EditListingPage() {
   if (error && !listing) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation user={user} onLogout={handleLogout} />
+        <Navigation user={user} />
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -335,7 +381,7 @@ export default function EditListingPage() {
   if (success) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation user={user} onLogout={handleLogout} />
+        <Navigation user={user} />
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -356,11 +402,10 @@ export default function EditListingPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation user={user} onLogout={handleLogout} />
+      <Navigation user={user} />
       
       <main className="flex-1 bg-gray-50 py-6">
         <div className="max-w-3xl mx-auto px-4">
-          {/* Back Link */}
           <Link href={`/listing/${params.id}`} className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Listing
           </Link>
@@ -377,7 +422,8 @@ export default function EditListingPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Photos Section */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Photos</h2>
+              <h2 className="text-lg font-semibold mb-2">Photos</h2>
+              <p className="text-sm text-gray-500 mb-4">Click the star icon to set a photo as primary. The primary photo appears first in your listing.</p>
               
               {/* Existing Photos */}
               {existingPhotos.length > 0 && (
@@ -387,15 +433,48 @@ export default function EditListingPage() {
                     {existingPhotos.map((photo, index) => (
                       <div key={photo.id} className="relative group">
                         <img src={photo.url} alt={`Photo ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
-                        {index === 0 && <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Primary</span>}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteExistingPhoto(photo)}
-                          disabled={deletingPhoto === photo.id}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition disabled:opacity-50"
-                        >
-                          {deletingPhoto === photo.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                        </button>
+                        
+                        {/* Primary Badge */}
+                        {photo.is_primary && (
+                          <span className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-current" /> Primary
+                          </span>
+                        )}
+                        
+                        {/* Action Buttons */}
+                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                          {/* Set Primary Button */}
+                          {!photo.is_primary && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimary(photo)}
+                              disabled={settingPrimary === photo.id}
+                              className="bg-yellow-500 text-white p-1 rounded-full hover:bg-yellow-600 disabled:opacity-50"
+                              title="Set as primary"
+                            >
+                              {settingPrimary === photo.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Star className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                          
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteExistingPhoto(photo)}
+                            disabled={deletingPhoto === photo.id}
+                            className="bg-red-500 text-white p-1 rounded-full hover:bg-red-600 disabled:opacity-50"
+                            title="Delete photo"
+                          >
+                            {deletingPhoto === photo.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -437,11 +516,11 @@ export default function EditListingPage() {
                 <label htmlFor="photo-upload" className="cursor-pointer">
                   <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-600">Click to add more photos</p>
-                  <p className="text-sm text-gray-500">Max 10 photos total, 5MB each</p>
+                  <p className="text-sm text-gray-500">Max 20 photos total, 5MB each</p>
                 </label>
               </div>
               <p className="text-sm text-gray-500 mt-2">
-                {existingPhotos.length + newPhotos.length}/10 photos
+                {existingPhotos.length + newPhotos.length}/20 photos
               </p>
             </div>
 
