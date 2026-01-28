@@ -1,14 +1,15 @@
-'use client'
+ 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeftRight, Menu, X, Home, MapPin, Upload, Loader2, Image, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, Menu, X, Home, MapPin, Upload, Loader2, Image, Trash2, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming']
 const PROPERTY_TYPES = ['Single Family', 'Townhouse', 'Condo', 'Multi-Family']
 
-function Navigation() {
+function Navigation({ user, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <nav className="gradient-bg text-white shadow-lg sticky top-0 z-50">
@@ -23,6 +24,16 @@ function Navigation() {
             <Link href="/browse" className="hover:text-blue-200">Browse</Link>
             <Link href="/about" className="hover:text-blue-200">Who We Are</Link>
             <Link href="/contact" className="hover:text-blue-200">Contact</Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="hover:text-blue-200">Dashboard</Link>
+                <button onClick={onLogout} className="hover:text-blue-200 flex items-center gap-1">
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              </>
+            ) : (
+              <Link href="/login" className="hover:text-blue-200">Login</Link>
+            )}
             <Link href="/list" className="bg-white text-blue-800 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50">List Your Home</Link>
           </div>
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2">
@@ -35,6 +46,14 @@ function Navigation() {
             <Link href="/browse" className="block py-2">Browse</Link>
             <Link href="/about" className="block py-2">Who We Are</Link>
             <Link href="/contact" className="block py-2">Contact</Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="block py-2">Dashboard</Link>
+                <button onClick={onLogout} className="block py-2 w-full text-left">Logout</button>
+              </>
+            ) : (
+              <Link href="/login" className="block py-2">Login</Link>
+            )}
             <Link href="/list" className="block bg-white text-blue-800 text-center py-2 rounded-lg font-semibold mt-2">List Your Home</Link>
           </div>
         )}
@@ -57,7 +76,6 @@ function Footer() {
   )
 }
 
-// Geocode address to get coordinates
 async function geocodeAddress(address, city, state, zip) {
   const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}, USA`)
   try {
@@ -69,16 +87,12 @@ async function geocodeAddress(address, city, state, zip) {
     })
     const data = await response.json()
     if (data && data.length > 0) {
-      return { 
-        lat: parseFloat(data[0].lat), 
-        lng: parseFloat(data[0].lon) 
-      }
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
     }
   } catch (err) {
     console.error('Geocoding error:', err)
   }
   
-  // Fallback: try with just city and state
   try {
     const fallbackQuery = encodeURIComponent(`${city}, ${state}, USA`)
     const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${fallbackQuery}&limit=1`, {
@@ -89,10 +103,7 @@ async function geocodeAddress(address, city, state, zip) {
     })
     const data = await response.json()
     if (data && data.length > 0) {
-      return { 
-        lat: parseFloat(data[0].lat), 
-        lng: parseFloat(data[0].lon) 
-      }
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
     }
   } catch (err) {
     console.error('Fallback geocoding error:', err)
@@ -102,6 +113,9 @@ async function geocodeAddress(address, city, state, zip) {
 }
 
 export default function ListPage() {
+  const router = useRouter()
+  const [user, setUser] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -114,9 +128,33 @@ export default function ListPage() {
     current_address: '', current_city: '', current_state: 'Indiana', current_zip: '',
     property_type: 'Single Family', beds: '', baths: '', sqft: '', year_built: '',
     estimated_value: '', hoa_monthly: '0', description: '',
-    desired_city: '', desired_state: 'Arizona',
-    contact_name: '', contact_email: '', contact_phone: ''
+    desired_city: '', desired_state: 'Arizona'
   })
+
+  useEffect(() => {
+    checkUser()
+  }, [])
+
+  async function checkUser() {
+    const supabase = createClient()
+    if (!supabase) {
+      setAuthLoading(false)
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
+    setAuthLoading(false)
+  }
+
+  async function handleLogout() {
+    const supabase = createClient()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
+    setUser(null)
+    router.push('/')
+  }
 
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files)
@@ -151,13 +189,12 @@ export default function ListPage() {
     setError('')
     
     const supabase = createClient()
-    if (!supabase) {
-      setError('Database connection not available')
+    if (!supabase || !user) {
+      setError('You must be logged in to create a listing')
       setLoading(false)
       return
     }
 
-    // Step 1: Geocode the address
     setGeocodingStatus('Finding location on map...')
     let latitude = null
     let longitude = null
@@ -178,10 +215,9 @@ export default function ListPage() {
       }
     }
 
-    // Step 2: Create listing with coordinates
     setGeocodingStatus('Creating listing...')
     const { data: listing, error: insertError } = await supabase.from('listings').insert({
-      user_id: null,
+      user_id: user.id,
       status: 'active',
       current_address: form.current_address,
       current_city: form.current_city,
@@ -209,7 +245,6 @@ export default function ListPage() {
       return
     }
 
-    // Step 3: Upload photos
     if (photos.length > 0 && listing) {
       setGeocodingStatus('Uploading photos...')
       for (let i = 0; i < photos.length; i++) {
@@ -244,10 +279,45 @@ export default function ListPage() {
     setLoading(false)
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  // Not logged in - show login prompt
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation user={user} onLogout={handleLogout} />
+        <main className="flex-1 flex items-center justify-center px-4 bg-gray-50">
+          <div className="text-center max-w-md">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Home className="w-10 h-10 text-blue-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-4">Sign In to List Your Home</h1>
+            <p className="text-gray-600 mb-6">Create an account or sign in to list your home and manage your listings.</p>
+            <div className="flex gap-4 justify-center">
+              <Link href="/login" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">
+                Sign In / Sign Up
+              </Link>
+              <Link href="/browse" className="border border-gray-300 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50">
+                Browse First
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   if (success) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navigation />
+        <Navigation user={user} onLogout={handleLogout} />
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -256,8 +326,8 @@ export default function ListPage() {
             <h1 className="text-3xl font-bold mb-4">Listing Created!</h1>
             <p className="text-gray-600 mb-6">Your home is now visible to potential swap partners.</p>
             <div className="flex gap-4 justify-center">
-              <Link href="/browse" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Browse Matches</Link>
-              <Link href="/" className="border border-gray-300 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50">Go Home</Link>
+              <Link href="/dashboard" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700">Go to Dashboard</Link>
+              <Link href="/browse" className="border border-gray-300 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50">Browse Matches</Link>
             </div>
           </div>
         </main>
@@ -268,17 +338,17 @@ export default function ListPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
+      <Navigation user={user} onLogout={handleLogout} />
       <main className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">List Your Home for Swap</h1>
         <p className="text-gray-600 mb-6">Tell us about your property and where you want to move</p>
 
         {/* Progress Steps */}
         <div className="flex items-center mb-8">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= s ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{s}</div>
-              {s < 4 && <div className={`w-8 h-1 mx-1 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />}
+              {s < 3 && <div className={`w-12 h-1 mx-1 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
@@ -294,7 +364,6 @@ export default function ListPage() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Street Address <span className="text-red-500">*</span></label>
                   <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="123 Main Street" value={form.current_address} onChange={(e) => setForm({...form, current_address: e.target.value})} />
-                  <p className="text-xs text-gray-500 mt-1">Enter your full street address for accurate map placement</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
@@ -392,14 +461,7 @@ export default function ListPage() {
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2"><Image className="w-5 h-5" />Add Photos</h2>
               
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                  id="photo-upload"
-                />
+                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" id="photo-upload" />
                 <label htmlFor="photo-upload" className="cursor-pointer">
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">Click to upload photos</p>
@@ -415,10 +477,7 @@ export default function ListPage() {
                     <div key={index} className="relative group">
                       <img src={photo.preview} alt={`Photo ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
                       {index === 0 && <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Primary</span>}
-                      <button
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
+                      <button onClick={() => removePhoto(index)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -428,41 +487,15 @@ export default function ListPage() {
 
               <p className="text-sm text-gray-500 mb-4">{photos.length}/10 photos added</p>
 
-              <div className="mt-6 flex justify-between">
-                <button onClick={() => setStep(2)} className="text-gray-600 hover:text-gray-800">← Back</button>
-                <button onClick={() => setStep(4)} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">Next</button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Contact Info */}
-          {step === 4 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Your Contact Info</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input type="text" className="w-full border rounded-lg px-4 py-2" placeholder="John Smith" value={form.contact_name} onChange={(e) => setForm({...form, contact_name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" className="w-full border rounded-lg px-4 py-2" placeholder="john@email.com" value={form.contact_email} onChange={(e) => setForm({...form, contact_email: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="tel" className="w-full border rounded-lg px-4 py-2" placeholder="(555) 123-4567" value={form.contact_phone} onChange={(e) => setForm({...form, contact_phone: e.target.value})} />
-                </div>
-              </div>
-              
               {geocodingStatus && (
-                <div className="mt-4 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 mb-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   {geocodingStatus}
                 </div>
               )}
-              
+
               <div className="mt-6 flex justify-between">
-                <button onClick={() => setStep(3)} className="text-gray-600 hover:text-gray-800">← Back</button>
+                <button onClick={() => setStep(2)} className="text-gray-600 hover:text-gray-800">← Back</button>
                 <button onClick={handleSubmit} disabled={loading} className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2">
                   {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Creating...</> : 'Publish Listing'}
                 </button>
