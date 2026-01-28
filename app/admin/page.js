@@ -7,7 +7,7 @@ import { ArrowLeftRight, Menu, X, Users, Eye, Home, TrendingUp, Calendar, Loader
 import { createClient } from '@/lib/supabase'
 
 // Simple password protection - change this!
-const ADMIN_PASSWORD = 'swapstates2024'
+const ADMIN_PASSWORD = 'FromMaine@1986'
 
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
