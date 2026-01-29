@@ -2,16 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Home, Search, ArrowRight, Menu, X, Bed, Bath, Square, MapPin, DollarSign, Clock, Users, Zap, TrendingUp, TrendingDown, RefreshCw, ExternalLink, CheckCircle, Shield, Handshake } from 'lucide-react'
+import { ArrowLeftRight, Home, Search, ArrowRight, Menu, X, Bed, Bath, Square, MapPin, DollarSign, Clock, Users, Zap, TrendingUp, TrendingDown, RefreshCw, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
-
-// Unified color scheme - Blue 900 as primary
-const colors = {
-  primary: 'bg-blue-900',
-  primaryHover: 'hover:bg-blue-800',
-  accent: 'bg-emerald-500',
-  accentHover: 'hover:bg-emerald-600',
-}
 
 function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -280,7 +272,7 @@ function MortgageRatesWidget() {
       </div>
 
       <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
-        <span>Source: Freddie Mac • {formatDate(data.dataDate)}</span>
+        <span>Source: Freddie Mac PMMS® • {formatDate(data.dataDate)}</span>
         <a href="https://www.freddiemac.com/pmms" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-gray-600 transition">
           View more <ExternalLink className="w-3 h-3" />
         </a>
@@ -479,7 +471,7 @@ export default function HomePage() {
                   
                   <div className="flex items-start gap-3 bg-white p-4 rounded-xl border border-gray-100">
                     <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Handshake className="w-5 h-5 text-orange-600" />
+                      <Users className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">Aligned Goals</h4>
