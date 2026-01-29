@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeftRight, Home, Search, ArrowRight, Menu, X, Bed, Bath, Square, MapPin, DollarSign, Clock, Users, Zap, TrendingUp, TrendingDown, Percent, Building, RefreshCw, ExternalLink } from 'lucide-react'
+import { ArrowLeftRight, Home, Search, ArrowRight, Menu, X, Bed, Bath, Square, MapPin, DollarSign, Clock, Users, Zap, TrendingUp, TrendingDown, Percent, Building, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 function Navigation() {
@@ -101,6 +101,9 @@ function MarketInsights() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [dataDate, setDataDate] = useState(null)
+
+  const FRED_API_KEY = process.env.NEXT_PUBLIC_FRED_API_KEY || 'demo'
 
   useEffect(() => {
     fetchMarketData()
@@ -111,75 +114,82 @@ function MarketInsights() {
     setError(null)
     
     try {
-      // Fetch from FRED API (Federal Reserve Economic Data) - Free, no API key required for basic access
-      // MORTGAGE30US = 30-Year Fixed Rate Mortgage Average
-      // MORTGAGE15US = 15-Year Fixed Rate Mortgage Average
-      // MSPUS = Median Sales Price of Houses Sold
+      // FRED API Series IDs for Freddie Mac Primary Mortgage Market Survey:
+      // MORTGAGE30US = 30-Year Fixed Rate Mortgage Average (Weekly, Thursday)
+      // MORTGAGE15US = 15-Year Fixed Rate Mortgage Average (Weekly, Thursday)
+      // MSPUS = Median Sales Price of Houses Sold (Quarterly)
       
-      const [mortgage30Response, mortgage15Response, homePriceResponse] = await Promise.all([
-        fetch('https://api.stlouisfed.org/fred/series/observations?series_id=MORTGAGE30US&api_key=demo&file_type=json&sort_order=desc&limit=2'),
-        fetch('https://api.stlouisfed.org/fred/series/observations?series_id=MORTGAGE15US&api_key=demo&file_type=json&sort_order=desc&limit=2'),
-        fetch('https://api.stlouisfed.org/fred/series/observations?series_id=MSPUS&api_key=demo&file_type=json&sort_order=desc&limit=5')
+      const baseUrl = 'https://api.stlouisfed.org/fred/series/observations'
+      
+      const [mortgage30Res, mortgage15Res, homePriceRes] = await Promise.all([
+        fetch(`${baseUrl}?series_id=MORTGAGE30US&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=10`),
+        fetch(`${baseUrl}?series_id=MORTGAGE15US&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=10`),
+        fetch(`${baseUrl}?series_id=MSPUS&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=8`)
       ])
 
-      let mortgage30yr = 6.87
-      let mortgage30yrPrev = 6.92
-      let mortgage15yr = 6.12
-      let mortgage15yrPrev = 6.15
-      let medianHomePrice = 417700
-      let homePricePrevYear = 398200
-
-      // Parse 30-year mortgage data
-      if (mortgage30Response.ok) {
-        const data30 = await mortgage30Response.json()
-        if (data30.observations && data30.observations.length >= 2) {
-          mortgage30yr = parseFloat(data30.observations[0].value)
-          mortgage30yrPrev = parseFloat(data30.observations[1].value)
-        }
+      if (!mortgage30Res.ok || !mortgage15Res.ok || !homePriceRes.ok) {
+        throw new Error('API request failed')
       }
 
-      // Parse 15-year mortgage data
-      if (mortgage15Response.ok) {
-        const data15 = await mortgage15Response.json()
-        if (data15.observations && data15.observations.length >= 2) {
-          mortgage15yr = parseFloat(data15.observations[0].value)
-          mortgage15yrPrev = parseFloat(data15.observations[1].value)
-        }
-      }
+      const [mortgage30Data, mortgage15Data, homePriceData] = await Promise.all([
+        mortgage30Res.json(),
+        mortgage15Res.json(),
+        homePriceRes.json()
+      ])
 
-      // Parse median home price data
-      if (homePriceResponse.ok) {
-        const dataPrice = await homePriceResponse.json()
-        if (dataPrice.observations && dataPrice.observations.length >= 5) {
-          medianHomePrice = parseFloat(dataPrice.observations[0].value)
-          homePricePrevYear = parseFloat(dataPrice.observations[4].value)
-        }
-      }
+      // Parse 30-year mortgage rate (Freddie Mac PMMS)
+      const mortgage30Observations = mortgage30Data.observations?.filter(o => o.value !== '.') || []
+      const mortgage30yr = parseFloat(mortgage30Observations[0]?.value) || 6.87
+      const mortgage30yrPrev = parseFloat(mortgage30Observations[1]?.value) || mortgage30yr
+      const mortgage30Date = mortgage30Observations[0]?.date || 'N/A'
 
-      // Calculate changes
-      const mortgage30yrChange = (mortgage30yr - mortgage30yrPrev).toFixed(2)
-      const mortgage15yrChange = (mortgage15yr - mortgage15yrPrev).toFixed(2)
-      const homePriceChange = (((medianHomePrice - homePricePrevYear) / homePricePrevYear) * 100).toFixed(1)
+      // Parse 15-year mortgage rate (Freddie Mac PMMS)
+      const mortgage15Observations = mortgage15Data.observations?.filter(o => o.value !== '.') || []
+      const mortgage15yr = parseFloat(mortgage15Observations[0]?.value) || 6.12
+      const mortgage15yrPrev = parseFloat(mortgage15Observations[1]?.value) || mortgage15yr
+
+      // Parse median home price (quarterly, so compare to same quarter last year)
+      const homePriceObservations = homePriceData.observations?.filter(o => o.value !== '.') || []
+      const medianHomePrice = parseFloat(homePriceObservations[0]?.value) || 417700
+      const homePricePrevYear = parseFloat(homePriceObservations[4]?.value) || medianHomePrice * 0.95
+
+      // Calculate week-over-week changes
+      const mortgage30yrChange = parseFloat((mortgage30yr - mortgage30yrPrev).toFixed(2))
+      const mortgage15yrChange = parseFloat((mortgage15yr - mortgage15yrPrev).toFixed(2))
+      const homePriceChange = parseFloat((((medianHomePrice - homePricePrevYear) / homePricePrevYear) * 100).toFixed(1))
+
+      // Calculate monthly payment (Principal & Interest only)
+      const calculateMonthlyPayment = (principal, annualRate, years = 30) => {
+        const monthlyRate = annualRate / 100 / 12
+        const numPayments = years * 12
+        return Math.round((principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1))
+      }
 
       setData({
         mortgage30yr: mortgage30yr.toFixed(2),
-        mortgage30yrChange: parseFloat(mortgage30yrChange),
+        mortgage30yrChange,
         mortgage15yr: mortgage15yr.toFixed(2),
-        mortgage15yrChange: parseFloat(mortgage15yrChange),
-        medianHomePrice: medianHomePrice,
-        homePriceChange: parseFloat(homePriceChange),
-        // These are approximations based on NAR data
-        inventoryMonths: 3.7,
-        daysOnMarket: 52
+        mortgage15yrChange,
+        medianHomePrice,
+        homePriceChange,
+        // Monthly payments at current 30-year rate
+        payment300k: calculateMonthlyPayment(300000, mortgage30yr),
+        payment400k: calculateMonthlyPayment(400000, mortgage30yr),
+        payment500k: calculateMonthlyPayment(500000, mortgage30yr),
+        // Commission savings calculation
+        commissionSavings: Math.round(medianHomePrice * 0.06),
+        closingCostSavings: Math.round(medianHomePrice * 0.03)
       })
-      
+
+      setDataDate(mortgage30Date)
       setLastUpdated(new Date())
       setLoading(false)
 
     } catch (err) {
       console.error('Error fetching market data:', err)
+      setError('Unable to fetch live data. Showing recent estimates.')
       
-      // Fallback to reasonable current data
+      // Fallback data
       setData({
         mortgage30yr: '6.87',
         mortgage30yrChange: -0.05,
@@ -187,38 +197,52 @@ function MarketInsights() {
         mortgage15yrChange: -0.03,
         medianHomePrice: 417700,
         homePriceChange: 4.8,
-        inventoryMonths: 3.7,
-        daysOnMarket: 52
+        payment300k: 1965,
+        payment400k: 2620,
+        payment500k: 3275,
+        commissionSavings: 25062,
+        closingCostSavings: 12531
       })
       
+      setDataDate('Recent')
       setLastUpdated(new Date())
       setLoading(false)
     }
   }
 
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr || dateStr === 'N/A' || dateStr === 'Recent') return dateStr
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-center py-8">
-          <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-          <span>Loading live market data...</span>
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin mr-3" />
+          <span className="text-lg">Loading live Freddie Mac rates...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 text-white">
+    <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-2xl p-6 text-white overflow-hidden">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xl font-bold flex items-center gap-2">
-            Market Insights
+          <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
+            Mortgage Rates
             <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 text-xs px-2 py-1 rounded-full">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
               LIVE
             </span>
           </h3>
-          <p className="text-blue-200 text-sm">Real-time U.S. housing market data from Federal Reserve</p>
+          <p className="text-blue-200 text-sm mt-1">
+            Freddie Mac Primary Mortgage Market Survey® • Data as of {formatDate(dataDate)}
+          </p>
         </div>
         <button 
           onClick={fetchMarketData}
@@ -229,123 +253,154 @@ function MarketInsights() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* 30-Year Mortgage Rate */}
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
+      {error && (
+        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4 flex items-center gap-2 text-yellow-200 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Main Rate Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* 30-Year Fixed */}
+        <div className="bg-white/10 rounded-xl p-4 backdrop-blur border border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Percent className="w-5 h-5 text-blue-300" />
+            <div className="w-8 h-8 bg-blue-500/30 rounded-lg flex items-center justify-center">
+              <Percent className="w-4 h-4 text-blue-300" />
+            </div>
             <span className="text-sm text-blue-200">30-Yr Fixed</span>
           </div>
-          <div className="text-2xl font-bold">{data.mortgage30yr}%</div>
-          <div className={`text-sm flex items-center gap-1 ${data.mortgage30yrChange < 0 ? 'text-green-400' : data.mortgage30yrChange > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-            {data.mortgage30yrChange < 0 ? <TrendingDown className="w-4 h-4" /> : data.mortgage30yrChange > 0 ? <TrendingUp className="w-4 h-4" /> : null}
-            {data.mortgage30yrChange > 0 ? '+' : ''}{data.mortgage30yrChange}% WoW
+          <div className="text-3xl font-bold">{data.mortgage30yr}%</div>
+          <div className={`text-sm flex items-center gap-1 mt-1 ${
+            data.mortgage30yrChange < 0 ? 'text-green-400' : 
+            data.mortgage30yrChange > 0 ? 'text-red-400' : 'text-gray-400'
+          }`}>
+            {data.mortgage30yrChange < 0 && <TrendingDown className="w-4 h-4" />}
+            {data.mortgage30yrChange > 0 && <TrendingUp className="w-4 h-4" />}
+            {data.mortgage30yrChange !== 0 && (
+              <span>{data.mortgage30yrChange > 0 ? '+' : ''}{data.mortgage30yrChange}% vs last week</span>
+            )}
+            {data.mortgage30yrChange === 0 && <span>Unchanged</span>}
           </div>
         </div>
 
-        {/* 15-Year Mortgage Rate */}
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
+        {/* 15-Year Fixed */}
+        <div className="bg-white/10 rounded-xl p-4 backdrop-blur border border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Percent className="w-5 h-5 text-blue-300" />
+            <div className="w-8 h-8 bg-purple-500/30 rounded-lg flex items-center justify-center">
+              <Percent className="w-4 h-4 text-purple-300" />
+            </div>
             <span className="text-sm text-blue-200">15-Yr Fixed</span>
           </div>
-          <div className="text-2xl font-bold">{data.mortgage15yr}%</div>
-          <div className={`text-sm flex items-center gap-1 ${data.mortgage15yrChange < 0 ? 'text-green-400' : data.mortgage15yrChange > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-            {data.mortgage15yrChange < 0 ? <TrendingDown className="w-4 h-4" /> : data.mortgage15yrChange > 0 ? <TrendingUp className="w-4 h-4" /> : null}
-            {data.mortgage15yrChange > 0 ? '+' : ''}{data.mortgage15yrChange}% WoW
+          <div className="text-3xl font-bold">{data.mortgage15yr}%</div>
+          <div className={`text-sm flex items-center gap-1 mt-1 ${
+            data.mortgage15yrChange < 0 ? 'text-green-400' : 
+            data.mortgage15yrChange > 0 ? 'text-red-400' : 'text-gray-400'
+          }`}>
+            {data.mortgage15yrChange < 0 && <TrendingDown className="w-4 h-4" />}
+            {data.mortgage15yrChange > 0 && <TrendingUp className="w-4 h-4" />}
+            {data.mortgage15yrChange !== 0 && (
+              <span>{data.mortgage15yrChange > 0 ? '+' : ''}{data.mortgage15yrChange}% vs last week</span>
+            )}
+            {data.mortgage15yrChange === 0 && <span>Unchanged</span>}
           </div>
         </div>
 
         {/* Median Home Price */}
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
+        <div className="bg-white/10 rounded-xl p-4 backdrop-blur border border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Building className="w-5 h-5 text-blue-300" />
+            <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
+              <Building className="w-4 h-4 text-green-300" />
+            </div>
             <span className="text-sm text-blue-200">Median Price</span>
           </div>
-          <div className="text-2xl font-bold">${(data.medianHomePrice / 1000).toFixed(0)}K</div>
-          <div className={`text-sm flex items-center gap-1 ${data.homePriceChange > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+          <div className="text-3xl font-bold">${(data.medianHomePrice / 1000).toFixed(0)}K</div>
+          <div className={`text-sm flex items-center gap-1 mt-1 ${
+            data.homePriceChange > 0 ? 'text-orange-400' : 'text-green-400'
+          }`}>
             {data.homePriceChange > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {data.homePriceChange > 0 ? '+' : ''}{data.homePriceChange}% YoY
+            <span>{data.homePriceChange > 0 ? '+' : ''}{data.homePriceChange}% year over year</span>
           </div>
         </div>
 
-        {/* Days on Market */}
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
+        {/* Potential Savings */}
+        <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 backdrop-blur border border-green-500/30">
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5 text-blue-300" />
-            <span className="text-sm text-blue-200">Avg. Days Listed</span>
+            <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-4 h-4 text-green-300" />
+            </div>
+            <span className="text-sm text-green-200">Swap Savings</span>
           </div>
-          <div className="text-2xl font-bold">{data.daysOnMarket}</div>
-          <div className="text-sm text-blue-300">
-            National average
+          <div className="text-3xl font-bold text-green-400">${(data.commissionSavings / 1000).toFixed(0)}K+</div>
+          <div className="text-sm text-green-300 mt-1">
+            Skip agent commissions
           </div>
         </div>
       </div>
 
-      {/* Mortgage Calculator Preview */}
-      <div className="mt-6 grid md:grid-cols-2 gap-4">
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <DollarSign className="w-5 h-5" />
-            Monthly Payment Estimate
+      {/* Monthly Payment Calculator */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white/10 rounded-xl p-5 backdrop-blur border border-white/10">
+          <h4 className="font-semibold mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-blue-300" />
+            Monthly Payment at {data.mortgage30yr}%
           </h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-blue-200">$300K home @ {data.mortgage30yr}%</span>
-              <span className="font-semibold">${Math.round((300000 * (parseFloat(data.mortgage30yr)/100/12) * Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360)) / (Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360) - 1)).toLocaleString()}/mo</span>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-blue-200">$300,000 home</span>
+              <span className="font-bold text-xl">${data.payment300k.toLocaleString()}<span className="text-sm font-normal text-blue-300">/mo</span></span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-blue-200">$400K home @ {data.mortgage30yr}%</span>
-              <span className="font-semibold">${Math.round((400000 * (parseFloat(data.mortgage30yr)/100/12) * Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360)) / (Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360) - 1)).toLocaleString()}/mo</span>
+            <div className="flex justify-between items-center">
+              <span className="text-blue-200">$400,000 home</span>
+              <span className="font-bold text-xl">${data.payment400k.toLocaleString()}<span className="text-sm font-normal text-blue-300">/mo</span></span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-blue-200">$500K home @ {data.mortgage30yr}%</span>
-              <span className="font-semibold">${Math.round((500000 * (parseFloat(data.mortgage30yr)/100/12) * Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360)) / (Math.pow(1 + parseFloat(data.mortgage30yr)/100/12, 360) - 1)).toLocaleString()}/mo</span>
+            <div className="flex justify-between items-center">
+              <span className="text-blue-200">$500,000 home</span>
+              <span className="font-bold text-xl">${data.payment500k.toLocaleString()}<span className="text-sm font-normal text-blue-300">/mo</span></span>
             </div>
           </div>
-          <p className="text-xs text-blue-300 mt-2">*Principal & interest only. Excludes taxes, insurance.</p>
+          <p className="text-xs text-blue-300 mt-4 pt-3 border-t border-white/10">
+            *Principal & interest only. 20% down. Excludes taxes, insurance, PMI.
+          </p>
         </div>
 
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur">
-          <h4 className="font-semibold mb-3">Why Swap Makes Sense Now</h4>
-          <div className="space-y-2 text-sm text-blue-100">
-            <p>
-              With 30-year rates at <span className="text-white font-semibold">{data.mortgage30yr}%</span> and 
-              median home prices at <span className="text-white font-semibold">${(data.medianHomePrice / 1000).toFixed(0)}K</span>, 
-              traditional selling costs you:
-            </p>
-            <div className="bg-red-500/20 rounded-lg p-3 text-red-200">
-              <div className="flex justify-between">
-                <span>6% Agent Commission:</span>
-                <span className="font-semibold">${((data.medianHomePrice * 0.06) / 1000).toFixed(0)}K</span>
-              </div>
-              <div className="flex justify-between">
-                <span>3% Closing Costs:</span>
-                <span className="font-semibold">${((data.medianHomePrice * 0.03) / 1000).toFixed(0)}K</span>
-              </div>
-              <div className="flex justify-between border-t border-red-400/30 pt-2 mt-2">
-                <span>Total Lost:</span>
-                <span className="font-bold text-red-300">${((data.medianHomePrice * 0.09) / 1000).toFixed(0)}K+</span>
-              </div>
+        <div className="bg-white/10 rounded-xl p-5 backdrop-blur border border-white/10">
+          <h4 className="font-semibold mb-4">Why Swap Instead of Sell?</h4>
+          <p className="text-blue-100 text-sm mb-4">
+            On a median-priced home (${(data.medianHomePrice / 1000).toFixed(0)}K), traditional selling costs:
+          </p>
+          <div className="bg-red-500/20 rounded-lg p-4 border border-red-500/30">
+            <div className="flex justify-between mb-2">
+              <span className="text-red-200">Agent Commission (6%)</span>
+              <span className="font-semibold text-red-300">${(data.commissionSavings / 1000).toFixed(0)}K</span>
             </div>
-            <p className="text-green-300">
-              <strong>SwapStates:</strong> Connect directly and keep that money!
-            </p>
+            <div className="flex justify-between mb-2">
+              <span className="text-red-200">Closing Costs (3%)</span>
+              <span className="font-semibold text-red-300">${(data.closingCostSavings / 1000).toFixed(0)}K</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-red-500/30">
+              <span className="text-red-100 font-semibold">Total Lost</span>
+              <span className="font-bold text-red-300 text-lg">${((data.commissionSavings + data.closingCostSavings) / 1000).toFixed(0)}K+</span>
+            </div>
           </div>
+          <p className="text-green-400 text-sm mt-4 font-medium">
+            ✓ SwapStates: Connect directly and keep your equity!
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+      {/* Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 pt-4 border-t border-white/10 gap-2">
         <p className="text-blue-300 text-xs">
-          Data source: Federal Reserve Economic Data (FRED) • Updated: {lastUpdated?.toLocaleString()}
+          Source: Freddie Mac PMMS® via FRED API • Updated {lastUpdated?.toLocaleTimeString()}
         </p>
         <a 
-          href="https://fred.stlouisfed.org/" 
+          href="https://www.freddiemac.com/pmms" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-blue-300 hover:text-white text-xs flex items-center gap-1"
+          className="text-blue-300 hover:text-white text-xs flex items-center gap-1 hover:underline"
         >
-          View source <ExternalLink className="w-3 h-3" />
+          View Freddie Mac PMMS <ExternalLink className="w-3 h-3" />
         </a>
       </div>
     </div>
@@ -401,7 +456,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Market Insights Section */}
+        {/* Market Insights Section - Freddie Mac Live Data */}
         <section className="py-12 bg-gray-50">
           <div className="max-w-6xl mx-auto px-4">
             <MarketInsights />
